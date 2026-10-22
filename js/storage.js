@@ -1,23 +1,21 @@
-// Keeps your world in this browser's localStorage.
-import { World } from './sim.js';
+// Keeps your world in this browser's localStorage. The simulation itself runs in a worker,
+// so the page only ever stores and hands over the saved text.
+const KEY = 'biosphere:world:v3';
 
-const KEY = 'biosphere:world:v2';
-
-export function saveWorld(world) {
+export function writeSave(json) {
   try {
-    const data = world.toJSON();
-    data.savedAt = Date.now();
-    localStorage.setItem(KEY, JSON.stringify(data));
-    return data.savedAt;
+    localStorage.setItem(KEY, json);
+    localStorage.setItem(KEY + ':at', String(Date.now()));
+    localStorage.removeItem('biosphere:world:v2');   // older, smaller worlds can't be loaded any more
+    return Date.now();
   } catch (e) { return 0; }
 }
 
-export function loadWorld() {
+export function readSave() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    return { world: World.fromJSON(data), savedAt: data.savedAt || Date.now() };
+    const json = localStorage.getItem(KEY);
+    if (!json) return null;
+    return { json, savedAt: Number(localStorage.getItem(KEY + ':at')) || Date.now() };
   } catch (e) { return null; }
 }
 

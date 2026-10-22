@@ -130,3 +130,35 @@ footer a { color: var(--ink); }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bar .seg button { padding: 9px 9px; }
 }
+
+/* v3 additions */
+.hud { flex-wrap: wrap; right: 56px; }
+.hud .event { color: #ffd29a; border-color: #5a4630; }
+.overlay.soft { background: linear-gradient(to top, rgba(8, 14, 12, .82), rgba(8, 14, 12, .1) 70%); align-items: end; }
+select, textarea, input[type="file"] { font: 13px var(--f-mono); color: var(--ink); background: var(--bed); border: 1px solid var(--rule); border-radius: 3px; }
+select { padding: 8px 10px; }
+textarea { width: 100%; padding: 8px 10px; resize: vertical; min-height: 4.2em; color: var(--plant); word-break: break-all; }
+input[type="file"] { padding: 5px; max-width: 100%; flex: 1 1 180px; min-width: 0; }
+select:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.champ { display: grid; gap: 8px; }
+.legend i { width: 8px; height: 8px; vertical-align: 0; }
+.counts { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 10px; }
+.counts b { font-size: 21px; }
+.tabs button { padding-inline: 8px; }
+
+.tree { display: grid; gap: 0; font-size: 14px; }
+.tree .node { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 0; position: relative; }
+.tree .node .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; justify-self: center; position: relative; z-index: 1; background: var(--soil); }
+.tree .node.alive .dot { background: currentColor; }
+.tree .node .meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.tree .node .nm { min-width: 0; overflow-wrap: anywhere; }
+.tree .node .nm small { display: block; color: var(--muted); font-size: 12px; }
+.tree .stem::before { content: ""; position: absolute; left: 8px; top: 50%; height: 100%; width: 2px; background: var(--rule); }
+.tree .self { background: var(--bed); border-radius: 3px; margin-inline: -6px; padding-inline: 6px; }
+.tree .self .nm { font-weight: 700; }
+.tree .kids { display: grid; gap: 0; margin-left: 9px; border-left: 2px solid var(--rule); padding-left: 10px; }
+.tree .kids .node::before { content: ""; position: absolute; left: -10px; top: 50%; width: 14px; height: 2px; background: var(--rule); }
+.tree button.node { all: unset; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 0; position: relative; cursor: pointer; }
+.tree button.node:hover .nm { text-decoration: underline; }
+.tree button.node:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.tree .more { color: var(--muted); font-size: 13px; padding: 4px 0 0 0; }

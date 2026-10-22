@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Biosphere</title>
-<meta name="description" content="A pixel-art ecosystem where creatures with tiny neural-network brains evolve on their own. Your world lives in your browser and keeps evolving while you're away.">
+<meta name="description" content="A pixel-art ecosystem where five species with tiny neural-network brains evolve on their own. Your world lives in your browser and keeps evolving while you're away.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -16,20 +16,26 @@
 <div class="wrap">
   <header class="top">
     <h1>Bio<span>sphere</span></h1>
-    <p>Your own little world. Creatures with tiny neural-network brains learn to graze, hunt and flee through the seasons. It lives in this browser and keeps evolving while you're away.</p>
+    <p>Your own little world. Five species with tiny neural-network brains learn to graze, hunt, scavenge and fly through seasons, storms and meteors. It lives in this browser and keeps evolving while you're away.</p>
   </header>
 
   <div class="layout">
     <section class="world" aria-label="The world">
       <div class="stage">
         <canvas id="view" aria-label="Your world. Tap a creature to see its brain, drag to move, pinch or scroll to zoom."></canvas>
-        <div class="hud"><span id="clock">Day 1 · 06:00</span><span id="season" class="season">Spring</span></div>
+        <div class="hud">
+          <span id="clock">Day 1 · 06:00</span><span id="season" class="season">Spring</span><span id="event" class="event" hidden></span><span id="rate" hidden></span>
+        </div>
         <div class="zoom"><button id="zin" type="button" aria-label="Zoom in">+</button><button id="zout" type="button" aria-label="Zoom out">−</button></div>
 
-        <div class="overlay" id="away" hidden>
+        <div class="overlay" id="loading">
+          <div class="card"><h3 id="loading-title">Growing your world</h3><p id="loading-text">Shaping land and water, and placing the first creatures.</p></div>
+        </div>
+
+        <div class="overlay soft" id="away" hidden>
           <div class="card" role="dialog" aria-labelledby="away-title">
             <h3 id="away-title">Welcome back</h3>
-            <p id="away-text">Your world kept living while you were gone.</p>
+            <p id="away-text"></p>
             <div class="progress" id="away-progress"><b id="away-bar"></b></div>
             <ul id="away-list" hidden></ul>
             <div class="actions"><button id="away-btn" type="button" class="primary">Skip ahead</button></div>
@@ -38,9 +44,9 @@
 
         <div class="overlay" id="ask" hidden>
           <div class="card" role="dialog" aria-labelledby="ask-title">
-            <h3 id="ask-title">Start a new world?</h3>
+            <h3 id="ask-title"></h3>
             <p id="ask-text"></p>
-            <div class="actions"><button id="ask-yes" type="button" class="primary">Start new world</button><button id="ask-no" type="button">Keep my world</button></div>
+            <div class="actions"><button id="ask-yes" type="button" class="primary"></button><button id="ask-no" type="button">Keep my world</button></div>
           </div>
         </div>
       </div>
@@ -52,20 +58,30 @@
           <button type="button" data-speed="4" aria-pressed="false">4×</button>
           <button type="button" data-speed="16" aria-pressed="false">16×</button>
         </div>
+        <button id="sound" type="button" aria-pressed="false">Sound off</button>
         <span class="spacer"></span>
         <div class="seg" role="group" aria-label="Tool">
           <button type="button" data-tool="inspect" aria-pressed="true">Inspect</button>
-          <button type="button" data-tool="plants" aria-pressed="false"><i style="background:var(--plant)"></i>Plants</button>
-          <button type="button" data-tool="herb" aria-pressed="false"><i style="background:var(--herb)"></i>Herd</button>
-          <button type="button" data-tool="carn" aria-pressed="false"><i style="background:var(--carn)"></i>Pack</button>
+          <button type="button" data-tool="plants" aria-pressed="false">Plants</button>
+          <button type="button" data-tool="release" aria-pressed="false">Release</button>
+          <button type="button" data-tool="meteor" aria-pressed="false">Meteor</button>
         </div>
+        <select id="species" aria-label="Species to release" hidden>
+          <option value="herb">Herbivores</option>
+          <option value="pred">Predators</option>
+          <option value="omni">Omnivores</option>
+          <option value="scav">Scavengers</option>
+          <option value="fly">Flyers</option>
+        </select>
       </div>
+      <div class="legend" id="legend"></div>
       <p class="hint" id="hint">Tap a creature to open its brain. Drag to look around, pinch or scroll to zoom.</p>
     </section>
 
     <aside>
       <div class="tabs" role="tablist">
         <button type="button" role="tab" id="t-creature" aria-selected="true" aria-controls="p-creature">Creature</button>
+        <button type="button" role="tab" id="t-family" aria-selected="false" aria-controls="p-family">Family</button>
         <button type="button" role="tab" id="t-world" aria-selected="false" aria-controls="p-world">World</button>
         <button type="button" role="tab" id="t-journal" aria-selected="false" aria-controls="p-journal">Journal</button>
       </div>
@@ -90,29 +106,38 @@
             <div class="gene"><span>Speed</span><span class="track"><b id="g-spd"></b><i></i></span><span class="v" id="v-spd"></span></div>
             <div class="gene"><span>Sight</span><span class="track"><b id="g-sight"></b><i></i></span><span class="v" id="v-sight"></span></div>
           </div>
-          <p class="note">The tick marks the first ancestors. Bigger bodies store more energy and resist predators, speed and sight cost energy every step.</p>
+          <p class="note">The tick marks the first ancestors. Bigger bodies store more energy and are harder to hunt. Speed and sight burn energy every step.</p>
         </div>
         <div class="sec">
           <h3>Brain, live</h3>
           <canvas class="chart" id="brain"></canvas>
           <p class="note">Light lines excite, coral lines inhibit, thickness is strength. Memory feeds its own output back in on the next step.</p>
-          <div class="row"><button id="best" type="button" class="small">Show the most evolved</button></div>
+          <div class="row"><button id="best" type="button" class="small">Show the most evolved</button><button id="export" type="button" class="small">Export as champion</button></div>
+          <div id="champ-out" class="champ" hidden>
+            <p class="note" id="champ-note"></p>
+            <textarea id="champ-code" readonly rows="3" aria-label="Champion code"></textarea>
+            <div class="row"><button id="champ-copy" type="button" class="small">Copy code</button><button id="champ-save" type="button" class="small" hidden>Save as file</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="p-family" role="tabpanel" aria-labelledby="t-family" hidden>
+        <div class="sec">
+          <h3>Family tree</h3>
+          <p class="note" id="fam-sum"></p>
+          <div id="tree" class="tree"></div>
+          <p class="note">Filled dots are alive, hollow dots have died. Tap a living relative to follow them.</p>
         </div>
       </div>
 
       <div class="panel" id="p-world" role="tabpanel" aria-labelledby="t-world" hidden>
         <div class="sec">
-          <div class="counts">
-            <span style="color:var(--herb)"><b id="n-h">0</b>herbivores</span>
-            <span style="color:var(--carn)"><b id="n-c">0</b>predators</span>
-            <span style="color:var(--plant)"><b id="n-p">0</b>plants</span>
-          </div>
+          <div class="counts" id="counts"></div>
           <canvas class="chart" id="pop"></canvas>
-          <div class="legend"><span><i style="background:var(--herb)"></i>herbivores</span><span><i style="background:var(--carn)"></i>predators ×3</span><span><i style="background:var(--plant)"></i>plants ÷4</span></div>
         </div>
         <div class="sec">
           <h3>Genes drifting over time</h3>
-          <p class="note">Average of everyone alive. The dashed line is where the first ancestors started.</p>
+          <p class="note">Average of everyone alive, per species. The dashed line is where the first ancestors started.</p>
           <div class="traits">
             <div class="trait"><span>Speed</span><canvas class="chart" id="tr-spd"></canvas></div>
             <div class="trait"><span>Size</span><canvas class="chart" id="tr-size"></canvas></div>
@@ -126,6 +151,13 @@
         <div class="sec">
           <h3>Records</h3>
           <dl class="records" id="records"></dl>
+        </div>
+        <div class="sec">
+          <h3>Release a champion</h3>
+          <p class="note">Paste a champion code from a friend's world, or open a champion file. It arrives with five offspring.</p>
+          <textarea id="champ-in" rows="3" placeholder="BIO1.…" aria-label="Champion code to release"></textarea>
+          <div class="row"><input id="champ-file" type="file" accept=".txt,.json,text/plain" aria-label="Open a champion file"><button id="champ-release" type="button" class="small">Release champion</button></div>
+          <p class="note" id="champ-msg" aria-live="polite"></p>
         </div>
         <div class="sec">
           <h3>This world</h3>
