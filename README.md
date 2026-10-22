@@ -2,7 +2,7 @@
 
 **An ecosystem that lives in your browser.** Pixel-art creatures, each with a tiny artificial brain (a neural network), learn on their own to eat, hunt and flee. Nobody programs their behavior: they evolve, generation after generation.
 
-👉 **[Try the live demo](https://YOUR-USERNAME.github.io/biosphere/)**
+👉 **[Try the live demo](https://riccdev06.github.io/biosphere/)**
 
 <!-- Add a GIF of the simulation here: ![Biosphere in action](demo.gif) -->
 
@@ -21,7 +21,7 @@ Tap any creature to watch its brain think in real time.
 Every world grows from a code (e.g. `quiet-swamp-37`). Same code, same starting world: add it to the link to share yours.
 
 ```
-https://YOUR-USERNAME.github.io/biosphere/#quiet-swamp-37
+https://riccdev06.github.io/biosphere/#quiet-swamp-37
 ```
 
 ## Run it locally
