@@ -3,95 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
 <title>Biosphere</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A pixel-art ecosystem where creatures with tiny neural-network brains evolve on their own. Your world lives in your browser and keeps evolving while you're away.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-/* Layout: a terrarium at night. Large world on the left, lab notebook on the right; stacks on phones. */
-:root{
-  --soil:#0e1815;
-  --bed:#14221d;
-  --rule:#26372f;
-  --ink:#ebe5d3;
-  --muted:#93a399;
-  --plant:#c2d86b;
-  --herb:#8fd3e8;
-  --carn:#ff8466;
-  --amber:#f2c14e;
-  --f-display:"Pixelify Sans", "Courier New", monospace;
-  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  color-scheme:dark;
-}
-html,body{background:var(--soil);color:var(--ink)}
-body{font-family:var(--f-body);font-size:15px;line-height:1.5;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));
-  padding-right:max(16px, env(safe-area-inset-right, 0px));
-  padding-block:20px 40px}
-.wrap{max-width:1180px;margin:0 auto;display:grid;gap:20px}
-header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
-h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,6vw,52px);line-height:1;margin:0;letter-spacing:.5px;text-wrap:balance}
-h1 span{color:var(--plant)}
-header.top p{margin:0;color:var(--muted);max-width:60ch;flex:1 1 320px}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
-@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
-.world{display:grid;gap:12px;min-width:0}
-.stage{position:relative;border:1px solid var(--rule);background:var(--bed);line-height:0}
-#world{width:100%;max-width:100%;aspect-ratio:240/150;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;display:block}
-.stage .tick{position:absolute;right:10px;top:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted);line-height:1.2;pointer-events:none;font-variant-numeric:tabular-nums}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,.seg button{font:500 13px/1 var(--f-mono);color:var(--ink);background:transparent;border:1px solid var(--rule);padding:9px 12px;cursor:pointer;border-radius:3px}
-button:hover{border-color:var(--muted)}
-button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-button.primary{background:var(--amber);color:#1a1405;border-color:var(--amber);font-weight:500}
-.seg{display:inline-flex}
-.seg button{border-radius:0;margin-left:-1px}
-.seg button:first-child{border-radius:3px 0 0 3px;margin-left:0}
-.seg button:last-child{border-radius:0 3px 3px 0}
-.seg button[aria-pressed="true"]{background:var(--rule);color:var(--amber)}
-.spacer{flex:1}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
-.legend i{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:0}
-.seedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--rule)}
-.seedrow label{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-#seed{font:500 14px var(--f-mono);background:var(--bed);color:var(--plant);border:1px solid var(--rule);padding:8px 10px;border-radius:3px;min-width:0;flex:1 1 180px;max-width:280px}
-.seedrow small{color:var(--muted);flex-basis:100%;font-size:13px}
-aside{display:grid;gap:22px;min-width:0}
-.sec{display:grid;gap:10px;min-width:0}
-.sec + .sec{padding-top:18px;border-top:1px solid var(--rule)}
-h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0;line-height:1.1}
-.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;margin:0}
-.facts div{min-width:0}
-.facts dt{font-size:12px;color:var(--muted)}
-.facts dd{margin:0;font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums}
-.energy{height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
-.energy b{display:block;height:100%;background:var(--amber);width:50%;transition:width .2s}
-canvas.panel{width:100%;display:block}
-.note{font-size:13px;color:var(--muted);margin:0}
-.counts{display:flex;gap:18px;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.counts span b{font-size:22px;font-weight:500;display:block;line-height:1.1}
-#log{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13.5px}
-#log li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
-#log time{font-family:var(--f-mono);color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;padding-top:1px}
-@media (prefers-reduced-motion:reduce){.energy b{transition:none}}
-</style>
-
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--BODY-->
 <div class="wrap">
   <header class="top">
     <h1>Bio<span>sphere</span></h1>
-    <p>Creatures with tiny artificial brains learn on their own to eat, hunt and flee. Nobody programs them: they evolve, generation after generation.</p>
+    <p>Your own little world. Creatures with tiny neural-network brains learn to graze, hunt and flee through the seasons. It lives in this browser and keeps evolving while you're away.</p>
   </header>
 
   <div class="layout">
     <section class="world" aria-label="The world">
       <div class="stage">
-        <canvas id="world" width="240" height="150" aria-label="Ecosystem simulation. Tap a creature to see its brain."></canvas>
-        <div class="tick" id="tick">t 0</div>
+        <canvas id="view" aria-label="Your world. Tap a creature to see its brain, drag to move, pinch or scroll to zoom."></canvas>
+        <div class="hud"><span id="clock">Day 1 · 06:00</span><span id="season" class="season">Spring</span></div>
+        <div class="zoom"><button id="zin" type="button" aria-label="Zoom in">+</button><button id="zout" type="button" aria-label="Zoom out">−</button></div>
+
+        <div class="overlay" id="away" hidden>
+          <div class="card" role="dialog" aria-labelledby="away-title">
+            <h3 id="away-title">Welcome back</h3>
+            <p id="away-text">Your world kept living while you were gone.</p>
+            <div class="progress" id="away-progress"><b id="away-bar"></b></div>
+            <ul id="away-list" hidden></ul>
+            <div class="actions"><button id="away-btn" type="button" class="primary">Skip ahead</button></div>
+          </div>
+        </div>
+
+        <div class="overlay" id="ask" hidden>
+          <div class="card" role="dialog" aria-labelledby="ask-title">
+            <h3 id="ask-title">Start a new world?</h3>
+            <p id="ask-text"></p>
+            <div class="actions"><button id="ask-yes" type="button" class="primary">Start new world</button><button id="ask-no" type="button">Keep my world</button></div>
+          </div>
+        </div>
       </div>
+
       <div class="bar">
         <button id="play" class="primary" type="button">Pause</button>
         <div class="seg" role="group" aria-label="Speed">
@@ -99,340 +52,102 @@ canvas.panel{width:100%;display:block}
           <button type="button" data-speed="4" aria-pressed="false">4×</button>
           <button type="button" data-speed="16" aria-pressed="false">16×</button>
         </div>
-        <button id="trails" type="button" aria-pressed="true">Trails: on</button>
         <span class="spacer"></span>
-        <button id="newworld" type="button">New world</button>
+        <div class="seg" role="group" aria-label="Tool">
+          <button type="button" data-tool="inspect" aria-pressed="true">Inspect</button>
+          <button type="button" data-tool="plants" aria-pressed="false"><i style="background:var(--plant)"></i>Plants</button>
+          <button type="button" data-tool="herb" aria-pressed="false"><i style="background:var(--herb)"></i>Herd</button>
+          <button type="button" data-tool="carn" aria-pressed="false"><i style="background:var(--carn)"></i>Pack</button>
+        </div>
       </div>
-      <div class="legend">
-        <span><i style="background:var(--herb)"></i>Herbivores</span>
-        <span><i style="background:var(--carn)"></i>Predators</span>
-        <span><i style="background:var(--plant)"></i>Plants</span>
-        <span>Tap a creature to open its brain</span>
-      </div>
-      <div class="seedrow">
-        <label for="seed">World code</label>
-        <input id="seed" type="text" spellcheck="false" autocomplete="off">
-        <button id="load" type="button">Load</button>
-        <button id="copy" type="button">Copy</button>
-        <small id="seedmsg">Same code, same world: share it and a friend will watch your biosphere being born.</small>
-      </div>
+      <p class="hint" id="hint">Tap a creature to open its brain. Drag to look around, pinch or scroll to zoom.</p>
     </section>
 
     <aside>
-      <div class="sec">
-        <div class="eyebrow" id="b-kind">Herbivore</div>
-        <h2 id="b-name">—</h2>
-        <dl class="facts">
-          <div><dt>Generation</dt><dd id="b-gen">0</dd></div>
-          <div><dt>Age</dt><dd id="b-age">0</dd></div>
-          <div><dt id="b-score-l">Meals</dt><dd id="b-score">0</dd></div>
-        </dl>
-        <div class="energy" aria-label="Energy"><b id="b-energy"></b></div>
-        <canvas class="panel" id="brain" height="230"></canvas>
-        <p class="note">Light lines excite, coral lines inhibit. Thickness is connection strength; nodes light up as it thinks.</p>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="t-creature" aria-selected="true" aria-controls="p-creature">Creature</button>
+        <button type="button" role="tab" id="t-world" aria-selected="false" aria-controls="p-world">World</button>
+        <button type="button" role="tab" id="t-journal" aria-selected="false" aria-controls="p-journal">Journal</button>
       </div>
 
-      <div class="sec">
-        <h2>Population</h2>
-        <div class="counts">
-          <span style="color:var(--herb)"><b id="c-h">0</b>herbivores · gen <i id="g-h">0</i></span>
-          <span style="color:var(--carn)"><b id="c-c">0</b>predators · gen <i id="g-c">0</i></span>
+      <div class="panel" id="p-creature" role="tabpanel" aria-labelledby="t-creature">
+        <div class="sec">
+          <div class="eyebrow"><span id="c-kind">Herbivore</span><span class="chip" id="c-lin">line</span></div>
+          <div class="row"><h2 id="c-name">—</h2><button id="follow" type="button" class="small" aria-pressed="false">Follow</button></div>
+          <p class="died" id="c-died" hidden></p>
+          <dl class="facts">
+            <div><dt>Generation</dt><dd id="c-gen">0</dd></div>
+            <div><dt>Age</dt><dd id="c-age">0</dd></div>
+            <div><dt id="c-score-l">Meals</dt><dd id="c-score">0</dd></div>
+            <div><dt>Children</dt><dd id="c-kids">0</dd></div>
+          </dl>
+          <div class="meter" aria-label="Energy"><b id="c-energy"></b></div>
         </div>
-        <canvas class="panel" id="chart" height="110"></canvas>
+        <div class="sec">
+          <h3>Genes</h3>
+          <div class="genes">
+            <div class="gene"><span>Size</span><span class="track"><b id="g-size"></b><i></i></span><span class="v" id="v-size"></span></div>
+            <div class="gene"><span>Speed</span><span class="track"><b id="g-spd"></b><i></i></span><span class="v" id="v-spd"></span></div>
+            <div class="gene"><span>Sight</span><span class="track"><b id="g-sight"></b><i></i></span><span class="v" id="v-sight"></span></div>
+          </div>
+          <p class="note">The tick marks the first ancestors. Bigger bodies store more energy and resist predators, speed and sight cost energy every step.</p>
+        </div>
+        <div class="sec">
+          <h3>Brain, live</h3>
+          <canvas class="chart" id="brain"></canvas>
+          <p class="note">Light lines excite, coral lines inhibit, thickness is strength. Memory feeds its own output back in on the next step.</p>
+          <div class="row"><button id="best" type="button" class="small">Show the most evolved</button></div>
+        </div>
       </div>
 
-      <div class="sec">
-        <h2>Journal</h2>
-        <ul id="log"></ul>
+      <div class="panel" id="p-world" role="tabpanel" aria-labelledby="t-world" hidden>
+        <div class="sec">
+          <div class="counts">
+            <span style="color:var(--herb)"><b id="n-h">0</b>herbivores</span>
+            <span style="color:var(--carn)"><b id="n-c">0</b>predators</span>
+            <span style="color:var(--plant)"><b id="n-p">0</b>plants</span>
+          </div>
+          <canvas class="chart" id="pop"></canvas>
+          <div class="legend"><span><i style="background:var(--herb)"></i>herbivores</span><span><i style="background:var(--carn)"></i>predators ×3</span><span><i style="background:var(--plant)"></i>plants ÷4</span></div>
+        </div>
+        <div class="sec">
+          <h3>Genes drifting over time</h3>
+          <p class="note">Average of everyone alive. The dashed line is where the first ancestors started.</p>
+          <div class="traits">
+            <div class="trait"><span>Speed</span><canvas class="chart" id="tr-spd"></canvas></div>
+            <div class="trait"><span>Size</span><canvas class="chart" id="tr-size"></canvas></div>
+            <div class="trait"><span>Sight</span><canvas class="chart" id="tr-sight"></canvas></div>
+          </div>
+        </div>
+        <div class="sec">
+          <h3>Leading family lines</h3>
+          <ul class="list" id="lines"></ul>
+        </div>
+        <div class="sec">
+          <h3>Records</h3>
+          <dl class="records" id="records"></dl>
+        </div>
+        <div class="sec">
+          <h3>This world</h3>
+          <div class="seedrow">
+            <input id="seed" type="text" spellcheck="false" autocomplete="off" aria-label="World code">
+            <button id="copy" type="button">Copy</button>
+            <button id="load" type="button">Open</button>
+          </div>
+          <p class="note" id="seed-msg">Every world grows from a code. Share yours and a friend starts from the same land and the same first creatures.</p>
+          <div class="row"><span class="note" id="save-msg"></span><button id="new" type="button" class="small">New world</button></div>
+        </div>
+      </div>
+
+      <div class="panel" id="p-journal" role="tabpanel" aria-labelledby="t-journal" hidden>
+        <ul id="journal"></ul>
       </div>
     </aside>
   </div>
+
+  <footer>Biosphere is open source. Everything runs in your browser and nothing is sent anywhere.</footer>
 </div>
-
-<script>
-(() => {
-'use strict';
-const W = 240, H = 150, CS = 20, GX = 12, GY = 8;
-const N_IN = 8, N_H = 6, N_OUT = 2;
-const SPEC = [
-  { name:'Herbivore', R:28, maxSp:0.9, cost:1.0, repro:1.6, maxAge:3200, cap:260, min:8, hue:195, score:'Meals',
-    inLabels:['Food ⟂','Food ↑','Food near','Danger ⟂','Danger ↑','Danger near','Energy','Constant'] },
-  { name:'Predator', R:42, maxSp:1.12, cost:1.35, repro:1.9, maxAge:3600, cap:70, min:3, hue:12, score:'Kills',
-    inLabels:['Prey ⟂','Prey ↑','Prey near','Rival ⟂','Rival ↑','Rival near','Energy','Constant'] }
-];
-const OUT_LABELS = ['Steer','Speed'];
-
-// ---------- utilities ----------
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return (h>>>0);}
-const pack=(r,g,b)=>((255<<24)|(b<<16)|(g<<8)|r)>>>0;
-function hsl(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];}
-function gauss(){let u=0,v=0;while(!u)u=rng();v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
-function tdelta(a,b,L){let d=b-a;if(d>L/2)d-=L;else if(d<-L/2)d+=L;return d;}
-const SYL=['ka','zo','mi','ru','te','lo','vi','na','be','so','qu','fi','do','ri','ul','pe','ga','no','xi','ta'];
-const nameOf=id=>{const a=SYL[id%20],b=SYL[(id*7+3)%20];return (a[0].toUpperCase()+a.slice(1)+b)+'-'+id;};
-const ADJ=['quiet','windy','ancient','golden','misty','wild','bright','hidden','warm','remote'];
-const NOUN=['swamp','valley','island','prairie','forest','lagoon','dune','glade','hill','delta'];
-function randomSeed(){const r=Math.random;return ADJ[r()*10|0]+'-'+NOUN[r()*10|0]+'-'+(10+(r()*90|0));}
-const clean=s=>s.toLowerCase().trim().replace(/[^a-z0-9._~-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
-
-// ---------- state ----------
-let rng, seed, T, creatures, plants, fert, terrain, nextId, history, logItems, selected, maxGen, lastRescue, genMark, ageRecord;
-const trailH=new Float32Array(W*H), trailC=new Float32Array(W*H);
-const gP=[],gH=[],gC=[];for(let i=0;i<GX*GY;i++){gP.push([]);gH.push([]);gC.push([]);}
-const MAXP=520;
-
-const css=getComputedStyle(document.documentElement);
-const tok=n=>css.getPropertyValue(n).trim();
-const hex=h=>{h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
-const C_PLANT=hex(tok('--plant')), C_HERB=hex(tok('--herb')), C_CARN=hex(tok('--carn')), C_AMBER=hex(tok('--amber'));
-
-function makeBrain(){
-  return { w1:Float32Array.from({length:N_H*N_IN},()=>gauss()*0.9),
-           w2:Float32Array.from({length:N_OUT*(N_H+1)},()=>gauss()*0.9) };
-}
-function mutate(b){
-  const m=w=>{for(let i=0;i<w.length;i++){const r=rng();if(r<0.02)w[i]=gauss();else if(r<0.17)w[i]+=gauss()*0.35;}};
-  const n={w1:Float32Array.from(b.w1),w2:Float32Array.from(b.w2)};m(n.w1);m(n.w2);return n;
-}
-function colorFor(k,hue){const c=k===0?hsl(hue,62,72):hsl(hue,88,66);return c;}
-function spawn(k,x,y,brain,gen,hue){
-  const S=SPEC[k];hue=hue??(S.hue+(rng()-.5)*30);
-  const col=colorFor(k,hue);
-  return { id:nextId++, k, x, y, a:rng()*Math.PI*2, e:0.9, age:0, gen:gen||0, hue,
-    col:pack(col[0],col[1],col[2]), rgb:col, brain:brain||makeBrain(),
-    inp:new Float32Array(N_IN), hid:new Float32Array(N_H), out:new Float32Array(N_OUT), score:0, kids:0, dead:false };
-}
-
-function newWorld(s){
-  seed=s; rng=mulberry32(hashStr(s));
-  T=0;nextId=1;creatures=[];plants=[];history=[];logItems=[];selected=null;maxGen=[0,0];lastRescue=[-9999,-9999];genMark=[0,0];ageRecord=[0,0];
-  trailH.fill(0);trailC.fill(0);
-  // fertile oases generated from the seed
-  fert=new Float32Array(W*H);
-  const blobs=[];const nb=5+(rng()*4|0);
-  for(let i=0;i<nb;i++)blobs.push({x:rng()*W,y:rng()*H,r:18+rng()*34,s:0.5+rng()*0.6});
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    let f=0.04;for(const b of blobs){const dx=tdelta(b.x,x,W),dy=tdelta(b.y,y,H);f+=b.s*Math.exp(-(dx*dx+dy*dy)/(b.r*b.r));}
-    fert[y*W+x]=Math.min(1,f);
-  }
-  terrain=new Uint32Array(W*H);
-  for(let i=0;i<W*H;i++){
-    const f=fert[i],n=(rng()-.5)*5;
-    const r=14+f*20+n,g=24+f*30+n,b=21+f*14+n;
-    terrain[i]=pack(r|0,g|0,b|0);
-  }
-  for(let i=0;i<360;i++)growPlant(true);
-  for(let i=0;i<60;i++)creatures.push(spawn(0,rng()*W,rng()*H));
-  for(let i=0;i<10;i++)creatures.push(spawn(1,rng()*W,rng()*H));
-  log('World "'+s+'" is born: 60 herbivores and 10 predators with random brains.');
-  for(let i=0;i<500;i++)tick();
-  pickFollow();
-  seedInput.value=s;
-}
-function growPlant(full){
-  for(let tries=0;tries<4;tries++){
-    const x=rng()*W|0,y=rng()*H|0;
-    if(rng()<fert[y*W+x]){plants.push({x:x+.5,y:y+.5,e:full?1:0.15,dead:false});return;}
-  }
-}
-function log(msg){logItems.unshift({t:T,msg});if(logItems.length>7)logItems.pop();logDirty=true;}
-
-// ---------- spatial grid ----------
-function buildGrid(){
-  for(let i=0;i<GX*GY;i++){gP[i].length=0;gH[i].length=0;gC[i].length=0;}
-  for(const p of plants)gP[((p.y/CS)|0)*GX+((p.x/CS)|0)].push(p);
-  for(const c of creatures)(c.k===0?gH:gC)[((c.y/CS)|0)*GX+((c.x/CS)|0)].push(c);
-}
-function nearest(grid,x,y,R,self){
-  const span=Math.ceil(R/CS),cx=(x/CS)|0,cy=(y/CS)|0;let best=null,bd=R*R,bx=0,by=0;
-  for(let j=-span;j<=span;j++)for(let i=-span;i<=span;i++){
-    const gx=(cx+i+GX)%GX,gy=(cy+j+GY)%GY;const cell=grid[gy*GX+gx];
-    for(const o of cell){if(o.dead||o===self)continue;const dx=tdelta(x,o.x,W),dy=tdelta(y,o.y,H),d=dx*dx+dy*dy;if(d<bd){bd=d;best=o;bx=dx;by=dy;}}
-  }
-  return best?{o:best,dx:bx,dy:by,d:Math.sqrt(bd)}:null;
-}
-function sense(c,inp,off,hit,R){
-  if(!hit){inp[off]=0;inp[off+1]=0;inp[off+2]=0;return;}
-  const ca=Math.cos(c.a),sa=Math.sin(c.a),d=hit.d||1e-3;
-  inp[off]=(-hit.dx*sa+hit.dy*ca)/d;   // sideways
-  inp[off+1]=(hit.dx*ca+hit.dy*sa)/d;  // ahead
-  inp[off+2]=1-hit.d/R;
-}
-
-// ---------- one simulation step ----------
-function tick(){
-  T++;
-  for(let k=0;k<3;k++)if(plants.length<MAXP)growPlant(false);
-  for(const p of plants)if(p.e<1)p.e+=0.004;
-  buildGrid();
-  const born=[];const count=[0,0];for(const c of creatures)count[c.k]++;
-  for(const c of creatures){
-    if(c.dead)continue;
-    const S=SPEC[c.k];
-    const food=c.k===0?nearest(gP,c.x,c.y,S.R):nearest(gH,c.x,c.y,S.R);
-    const other=c.k===0?nearest(gC,c.x,c.y,S.R+6):nearest(gC,c.x,c.y,S.R*0.7,c);
-    sense(c,c.inp,0,food,S.R);sense(c,c.inp,3,other,c.k===0?S.R+6:S.R*0.7);
-    c.inp[6]=c.e/2-0.5;c.inp[7]=1;
-    const {w1,w2}=c.brain;
-    for(let h=0;h<N_H;h++){let s=0;for(let i=0;i<N_IN;i++)s+=w1[h*N_IN+i]*c.inp[i];c.hid[h]=Math.tanh(s);}
-    for(let o=0;o<N_OUT;o++){let s=w2[o*(N_H+1)+N_H];for(let h=0;h<N_H;h++)s+=w2[o*(N_H+1)+h]*c.hid[h];c.out[o]=Math.tanh(s);}
-    c.a+=c.out[0]*0.3;
-    const sp=(c.out[1]+1)*0.5*S.maxSp;
-    c.x=(c.x+Math.cos(c.a)*sp+W)%W;c.y=(c.y+Math.sin(c.a)*sp+H)%H;
-    c.e-=(0.0012+0.0035*sp*sp)*S.cost;c.age++;
-    const ti=((c.y|0)*W+(c.x|0));(c.k===0?trailH:trailC)[ti]=Math.min(1,(c.k===0?trailH:trailC)[ti]+0.35);
-    if(food&&food.d<2.4){
-      if(c.k===0&&!food.o.dead){food.o.dead=true;c.e+=0.42*food.o.e;c.score++;}
-      else if(c.k===1&&!food.o.dead){food.o.dead=true;c.e+=0.45+0.5*food.o.e;c.score++;}
-      c.e=Math.min(2.4,c.e);
-    }
-    if(c.e>=S.repro&&count[c.k]<S.cap){
-      c.e*=0.5;c.kids++;count[c.k]++;
-      const ch=spawn(c.k,(c.x+(rng()-.5)*4+W)%W,(c.y+(rng()-.5)*4+H)%H,mutate(c.brain),c.gen+1,c.hue+(rng()-.5)*6);
-      ch.e=c.e;born.push(ch);
-      if(ch.gen>maxGen[c.k]){maxGen[c.k]=ch.gen;
-        if(ch.gen>=genMark[c.k]+10){genMark[c.k]=ch.gen;log(`${c.k?'Predators':'Herbivores'} reach generation ${ch.gen}.`);}}
-    }
-    if(c.e<=0||c.age>S.maxAge){
-      c.dead=true;
-      if(c.age>ageRecord[c.k]+200&&T>600){ageRecord[c.k]=c.age;log(`${nameOf(c.id)} dies at ${c.age} ticks: a new longevity record.`);}
-    }
-  }
-  creatures=creatures.filter(c=>!c.dead);for(const b of born)creatures.push(b);
-  if(plants.some(p=>p.dead))plants=plants.filter(p=>!p.dead);
-  // rescue from extinction
-  const n=[0,0];for(const c of creatures)n[c.k]++;
-  for(let k=0;k<2;k++)if(n[k]<SPEC[k].min){
-    const best=creatures.filter(c=>c.k===k).sort((a,b)=>b.score-a.score)[0];
-    for(let i=0;i<(k?4:10);i++)creatures.push(spawn(k,rng()*W,rng()*H,best?mutate(best.brain):null,best?best.gen+1:0));
-    if(T-lastRescue[k]>800){lastRescue[k]=T;log(k?'Predators were about to vanish: a new colony arrives from outside.':'Herbivores were nearly extinct: a migration arrives.');}
-  }
-  if(T%20===0){history.push([n[0],n[1]]);if(history.length>300)history.shift();}
-}
-
-// ---------- world rendering ----------
-const wc=document.getElementById('world'),wx=wc.getContext('2d');
-const img=wx.createImageData(W,H),buf=new Uint32Array(img.data.buffer);
-let trailsOn=true;
-function px(x,y,col){x=((x%W)+W)%W;y=((y%H)+H)%H;buf[y*W+x]=col;}
-function renderWorld(){
-  if(trailsOn){
-    for(let i=0;i<W*H;i++){
-      const th=trailH[i],tc=trailC[i];
-      if(th<0.01&&tc<0.01){buf[i]=terrain[i];continue;}
-      const t=terrain[i];let r=t&255,g=(t>>8)&255,b=(t>>16)&255;
-      r+=(C_HERB[0]*th+C_CARN[0]*tc)*0.28;g+=(C_HERB[1]*th+C_CARN[1]*tc)*0.28;b+=(C_HERB[2]*th+C_CARN[2]*tc)*0.28;
-      buf[i]=pack(Math.min(255,r)|0,Math.min(255,g)|0,Math.min(255,b)|0);
-      trailH[i]*=0.94;trailC[i]*=0.94;
-    }
-  } else buf.set(terrain);
-  for(const p of plants){const f=0.35+0.65*p.e;px(p.x|0,p.y|0,pack(C_PLANT[0]*f|0,C_PLANT[1]*f|0,C_PLANT[2]*f|0));}
-  for(const c of creatures){
-    const x=c.x|0,y=c.y|0;
-    px(x,y,c.col);px(x+1,y,c.col);px(x,y+1,c.col);px(x+1,y+1,c.col);
-    const nx=Math.round(c.x+0.5+Math.cos(c.a)*1.9),ny=Math.round(c.y+0.5+Math.sin(c.a)*1.9);
-    px(nx,ny,pack(255,250,235));
-  }
-  if(selected&&!selected.dead){
-    const x=selected.x|0,y=selected.y|0,a=pack(C_AMBER[0],C_AMBER[1],C_AMBER[2]);
-    for(let i=-4;i<=5;i++){if((i+T)%3===0)continue;px(x+i,y-4,a);px(x+i,y+5,a);px(x-4,y+i,a);px(x+5,y+i,a);}
-  }
-  wx.putImageData(img,0,0);
-}
-
-// ---------- brain panel ----------
-const bc=document.getElementById('brain'),bx=bc.getContext('2d');
-const chc=document.getElementById('chart'),chx=chc.getContext('2d');
-function fit(cv,h){const dpr=window.devicePixelRatio||1,w=cv.clientWidth;if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return w;}
-function wcol(w,alpha){const c=w>=0?[235,229,211]:C_CARN;return `rgba(${c[0]},${c[1]},${c[2]},${alpha})`;}
-function renderBrain(){
-  const c=selected;if(!c)return;
-  const w=fit(bc,230),h=230,S=SPEC[c.k];
-  bx.clearRect(0,0,w,h);
-  const xi=86,xh=w*0.62,xo=w-58;
-  const yi=i=>14+i*(h-28)/(N_IN-1),yh=i=>30+i*(h-60)/(N_H-1),yo=i=>h/2-30+i*60;
-  const {w1,w2}=c.brain;
-  for(let hI=0;hI<N_H;hI++)for(let i=0;i<N_IN;i++){const v=w1[hI*N_IN+i];bx.strokeStyle=wcol(v,Math.min(.75,.12+Math.abs(v)*.25));bx.lineWidth=Math.min(3,Math.abs(v)*1.3);bx.beginPath();bx.moveTo(xi,yi(i));bx.lineTo(xh,yh(hI));bx.stroke();}
-  for(let o=0;o<N_OUT;o++)for(let hI=0;hI<N_H;hI++){const v=w2[o*(N_H+1)+hI];bx.strokeStyle=wcol(v,Math.min(.8,.15+Math.abs(v)*.25));bx.lineWidth=Math.min(3.2,Math.abs(v)*1.4);bx.beginPath();bx.moveTo(xh,yh(hI));bx.lineTo(xo,yo(o));bx.stroke();}
-  const node=(x,y,v)=>{const a=Math.abs(v);bx.fillStyle='#0e1815';bx.beginPath();bx.arc(x,y,6,0,7);bx.fill();bx.fillStyle=v>=0?`rgba(242,193,78,${.15+a*.85})`:`rgba(255,132,102,${.15+a*.85})`;bx.beginPath();bx.arc(x,y,6,0,7);bx.fill();bx.strokeStyle='#93a399';bx.lineWidth=1;bx.stroke();};
-  bx.font='11.5px "IBM Plex Mono", monospace';bx.textBaseline='middle';
-  for(let i=0;i<N_IN;i++){node(xi,yi(i),c.inp[i]);bx.fillStyle='#93a399';bx.textAlign='right';bx.fillText(S.inLabels[i],xi-11,yi(i));}
-  for(let hI=0;hI<N_H;hI++)node(xh,yh(hI),c.hid[hI]);
-  for(let o=0;o<N_OUT;o++){node(xo,yo(o),c.out[o]);bx.fillStyle='#ebe5d3';bx.textAlign='left';bx.fillText(OUT_LABELS[o],xo+11,yo(o));}
-}
-function renderChart(){
-  const w=fit(chc,110),h=110;chx.clearRect(0,0,w,h);
-  chx.strokeStyle='#26372f';chx.lineWidth=1;for(let i=1;i<4;i++){const y=Math.round(h*i/4)+.5;chx.beginPath();chx.moveTo(0,y);chx.lineTo(w,y);chx.stroke();}
-  if(history.length<2)return;
-  const max=Math.max(40,...history.map(r=>r[0]));
-  const line=(k,col,scale)=>{chx.beginPath();history.forEach((r,i)=>{const x=i/(299)*w,y=h-2-(r[k]*scale/max)*(h-8);i?chx.lineTo(x,y):chx.moveTo(x,y);});
-    chx.strokeStyle=col;chx.lineWidth=1.6;chx.stroke();
-    const lx=(history.length-1)/299*w;chx.lineTo(lx,h);chx.lineTo(0,h);chx.closePath();chx.fillStyle=col.replace('rgb','rgba').replace(')',',0.12)');chx.fill();
-    const last=history[history.length-1];chx.fillStyle=col;chx.beginPath();chx.arc(lx,h-2-(last[k]*scale/max)*(h-8),2.6,0,7);chx.fill();};
-  line(0,`rgb(${C_HERB})`,1);line(1,`rgb(${C_CARN})`,3);
-  chx.fillStyle='#93a399';chx.font='10.5px "IBM Plex Mono", monospace';chx.textAlign='right';chx.textBaseline='top';chx.fillText('predators ×3',w-2,2);
-}
-
-// ---------- interface ----------
-const $=id=>document.getElementById(id);
-const seedInput=$('seed');let logDirty=true;
-function pickFollow(prefKind){
-  const pool=creatures.filter(c=>prefKind==null||c.k===prefKind);
-  selected=(pool.length?pool:creatures).slice().sort((a,b)=>(b.gen*1000+b.age)-(a.gen*1000+a.age))[0]||null;
-}
-function renderInfo(){
-  if(!selected)return;const c=selected,S=SPEC[c.k];
-  $('b-kind').textContent=S.name;$('b-kind').style.color=`rgb(${c.rgb})`;
-  $('b-name').textContent=nameOf(c.id);$('b-gen').textContent=c.gen;$('b-age').textContent=c.age;
-  $('b-score-l').textContent=S.score;$('b-score').textContent=c.score;
-  $('b-energy').style.width=Math.max(0,Math.min(100,c.e/2.4*100))+'%';
-  const n=[0,0];for(const x of creatures)n[x.k]++;
-  $('c-h').textContent=n[0];$('c-c').textContent=n[1];$('g-h').textContent=maxGen[0];$('g-c').textContent=maxGen[1];
-  $('tick').textContent='t '+T.toLocaleString('en-US');
-  if(logDirty){logDirty=false;$('log').innerHTML=logItems.map(l=>`<li><time>t ${l.t}</time><span>${l.msg}</span></li>`).join('');}
-}
-
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let running=!reduce,speed=1,frame=0;
-if(reduce){trailsOn=false;}
-function syncButtons(){$('play').textContent=running?'Pause':'Play';$('trails').textContent='Trails: '+(trailsOn?'on':'off');$('trails').setAttribute('aria-pressed',trailsOn);}
-$('play').onclick=()=>{running=!running;syncButtons();};
-document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{speed=+b.dataset.speed;document.querySelectorAll('[data-speed]').forEach(x=>x.setAttribute('aria-pressed',x===b));});
-$('trails').onclick=()=>{trailsOn=!trailsOn;if(!trailsOn){trailH.fill(0);trailC.fill(0);}syncButtons();};
-$('newworld').onclick=()=>{const s=randomSeed();setHash(s);newWorld(s);};
-$('load').onclick=()=>{const s=clean(seedInput.value);if(!s){$('seedmsg').textContent='Type a code, for example quiet-swamp-37.';return;}setHash(s);newWorld(s);$('seedmsg').textContent='World "'+s+'" loaded.';};
-seedInput.addEventListener('keydown',e=>{if(e.key==='Enter')$('load').click();});
-function shareText(){
-  let standalone=false;try{standalone=window.top===window&&/^https?:$/.test(location.protocol);}catch(e){}
-  return standalone?location.origin+location.pathname+'#'+seed:seed;
-}
-$('copy').onclick=()=>{
-  const t=shareText();
-  const ok=()=>{$('seedmsg').textContent=(t===seed?'Code copied: ':'Link copied: ')+t;};
-  const fail=()=>{seedInput.focus();seedInput.select();$('seedmsg').textContent='Copy the selected code and send it to anyone.';};
-  try{navigator.clipboard.writeText(t).then(ok,fail);}catch(e){fail();}
-};
-function setHash(s){try{history&&window.history.replaceState(null,'','#'+s);}catch(e){}}
-wc.addEventListener('click',e=>{
-  const r=wc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
-  let best=null,bd=100;for(const c of creatures){const dx=tdelta(x,c.x,W),dy=tdelta(y,c.y,H),d=dx*dx+dy*dy;if(d<bd){bd=d;best=c;}}
-  if(best){selected=best;renderInfo();renderBrain();}
-});
-
-function loop(){
-  if(running)for(let i=0;i<speed;i++)tick();
-  if(selected&&selected.dead){const k=selected.k;log(`${nameOf(selected.id)} has died. Now following the most evolved of its species.`);pickFollow(k);}
-  renderWorld();
-  if(frame++%4===0){renderInfo();renderBrain();renderChart();}
-  requestAnimationFrame(loop);
-}
-
-const h=clean(decodeURIComponent((location.hash||'').slice(1)));
-newWorld(h||'quiet-swamp-37');
-syncButtons();renderInfo();renderBrain();renderChart();
-requestAnimationFrame(loop);
-})();
-</script>
-
+<!--/BODY-->
+<script type="module" src="js/main.js"></script>
+</body>
 </html>
