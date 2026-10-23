@@ -1,5 +1,5 @@
 // Runs the simulation in a background thread and streams snapshots to the page.
-import { World, KINDS, DAY, creatureName, EVENTS, tdelta, W, H } from './sim.js';
+import { World, KINDS, DAY, creatureName, EVENTS, tdelta, W, H, CARRION_T } from './sim.js';
 
 let world = null, running = true, speed = 1, selId = 0, fxOn = true;
 let lastStep = 0, carry = 0, frameReady = true, lastInfo = 0, lastFamily = 0, lastLog = null, lastWater = -1;
@@ -48,7 +48,7 @@ function frame() {
   const pl = new Float32Array(world.plants.length * 3);
   world.plants.forEach((p, i) => { pl[i * 3] = p.x; pl[i * 3 + 1] = p.y; pl[i * 3 + 2] = p.e; });
   const co = new Float32Array(world.corpses.length * 3);
-  world.corpses.forEach((d, i) => { co[i * 3] = d.x; co[i * 3 + 1] = d.y; co[i * 3 + 2] = d.t / 1800; });
+  world.corpses.forEach((d, i) => { co[i * 3] = d.x; co[i * 3 + 1] = d.y; co[i * 3 + 2] = d.t / CARRION_T; });
   const s = selected();
   const sel = s ? {
     id: s.id, k: s.k, name: creatureName(s.id), gen: s.gen, age: s.age, score: s.score, kids: s.kids, e: s.e / world.maxE(s),
@@ -72,7 +72,7 @@ function info(force) {
   const head = world.log[0];
   const msg = {
     type: 'info', seed: world.seed, T: world.T, counts: world.counts(), plants: world.plants.length, history: world.history,
-    lines: world.topLineages(8), records: world.records, stats: world.stats,
+    lines: world.topLineages(8), records: world.records, stats: world.stats, iq: world.iq, iqHistory: world.iqHistory,
     log: head !== lastLog ? world.log : null,
   };
   lastLog = head;
@@ -85,6 +85,7 @@ function summaryFrom(b) {
   return {
     ticks: world.T - b.T, births: world.stats.births - b.births, deaths: world.stats.deaths - b.deaths,
     genFrom: b.gen, genTo: world.records.maxGen.slice(), counts: world.counts(), news,
+    iqFrom: b.iq, iqTo: world.iq.map(q => q ? q.ratio : null),
   };
 }
 
@@ -94,12 +95,17 @@ function loop() {
   if (catchup) {
     world.fxOn = false;
     const t0 = performance.now();
+    if (!catchup.started) catchup.started = t0;
     while (catchup.done < catchup.total && !catchup.stop && performance.now() - t0 < 120) { world.tick(); catchup.done++; }
+    // keep the wait under about 30 seconds on slower devices
+    const spent = performance.now() - catchup.started;
+    if (spent > 28000 && catchup.done < catchup.total) { catchup.fullTotal = catchup.total; catchup.stop = true; }
+    catchup.frac = Math.max(catchup.done / catchup.total, spent / 28000);
     if (world.waterVer !== lastWater) sendWater();
     const nowc = performance.now();
-    if (frameReady && nowc - (catchup.lastFrame || 0) > 200) { catchup.lastFrame = nowc; frame(); post({ type: 'progress', done: catchup.done, total: catchup.total }); }
+    if (frameReady && nowc - (catchup.lastFrame || 0) > 200) { catchup.lastFrame = nowc; frame(); post({ type: 'progress', done: catchup.done, total: catchup.total, frac: catchup.frac }); }
     if (catchup.done >= catchup.total || catchup.stop) {
-      const sum = summaryFrom(catchup.before); catchup = null; world.fxOn = fxOn;
+      const sum = summaryFrom(catchup.before); if (catchup.fullTotal) sum.missed = catchup.fullTotal; catchup = null; world.fxOn = fxOn;
       if (!selected()) pickMostEvolved(0);
       tpsMeasured = 60 * speed; tickCount = 0; tickClock = performance.now();
       post({ type: 'caughtup', summary: sum });
@@ -134,7 +140,7 @@ function startCatchup(savedAt) {
   const total = Math.floor(Math.min(36000, Math.min(away, 21600) + Math.max(0, away - 21600) / 3));
   if (total < 240) { for (let i = 0; i < total; i++) world.tick(); return false; }
   catchup = { total, done: 0, stop: false, away,
-    before: { T: world.T, births: world.stats.births, deaths: world.stats.deaths, gen: world.records.maxGen.slice() } };
+    before: { T: world.T, births: world.stats.births, deaths: world.stats.deaths, gen: world.records.maxGen.slice(), iq: world.iq.map(q => q ? q.ratio : null) } };
   post({ type: 'catchupStart', total, away });
   return true;
 }
@@ -200,6 +206,7 @@ onmessage = e => {
         break;
       }
       case 'family': if (selId) post({ type: 'info', family: world.family(selId) }); break;
+      case 'testBrain': post({ type: 'brainTest', result: world.testBrain(m.id || selId) }); break;
     }
   } catch (err) {
     post({ type: 'error', reason: String(err && err.stack || err) });

@@ -8,7 +8,7 @@ const MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
 const KC = KINDS.map((_, k) => kindRgb(k));
 
 function fit(cv, h) {
-  const dpr = window.devicePixelRatio || 1, w = Math.max(10, cv.clientWidth);
+  const dpr = window.devicePixelRatio || 1, w = Math.max(10, Math.min(cv.clientWidth, cv.parentElement ? cv.parentElement.clientWidth : cv.clientWidth));
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   cv.style.height = h + 'px';
   const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
@@ -84,4 +84,32 @@ export function drawTrait(cv, hist, key) {
   x.fillStyle = C.muted; x.font = `10px ${MONO}`; x.textAlign = 'right'; x.textBaseline = 'top'; x.fillText(hi.toFixed(1) + '×', w - 2, 0);
   x.textBaseline = 'bottom'; x.fillText(lo.toFixed(1) + '×', w - 2, h);
   for (let k = 0; k < KINDS.length; k++) series(x, hist.map(r => r[key][k]), KC[k], w, h, top, bottom, lo, hi, false, 1.3);
+}
+
+// how many times better than random brains, per species, on a log scale
+export function drawIQ(cv, hist) {
+  const h = 120, [x, w] = fit(cv, h), top = 12, bottom = 16;
+  if (!hist || hist.length < 2) {
+    x.fillStyle = C.muted; x.font = `11px ${MONO}`; x.textBaseline = 'middle'; x.fillText('The history appears after two days.', 2, h / 2); return;
+  }
+  let hi = 2; for (const r of hist) for (const v of r.r) if (v) hi = Math.max(hi, v);
+  const ticks = [1, 2, 5, 10, 20, 50, 100].filter(t => t <= hi * 1.2);
+  const top2 = Math.log(Math.max(hi * 1.15, ticks[ticks.length - 1])), lo = Math.log(0.8);
+  const y = v => top + (1 - (Math.log(Math.max(0.8, v)) - lo) / (top2 - lo)) * (h - top - bottom);
+  x.font = `10px ${MONO}`; x.fillStyle = C.muted; x.textAlign = 'left';
+  for (const t of ticks) {
+    const yy = Math.round(y(t)) + .5;
+    x.strokeStyle = C.rule; x.lineWidth = 1; if (t === 1) x.setLineDash([2, 3]);
+    x.beginPath(); x.moveTo(0, yy); x.lineTo(w, yy); x.stroke(); x.setLineDash([]);
+    x.textBaseline = 'bottom'; x.fillText(t === 1 ? '1× random' : t + '×', 2, yy - 1);
+  }
+  const d0 = Math.floor(hist[0].t / DAY), d1 = Math.floor(hist[hist.length - 1].t / DAY);
+  x.textBaseline = 'top'; x.fillText('day ' + d0, 2, h - bottom + 3); x.textAlign = 'right'; x.fillText('day ' + d1, w - 2, h - bottom + 3);
+  for (let k = 0; k < KINDS.length; k++) {
+    const pts = []; hist.forEach((r, i) => { const v = r.r[k]; if (v) pts.push([i / (hist.length - 1) * w, y(v)]); });
+    if (pts.length < 2) continue;
+    x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b));
+    x.strokeStyle = rgba(KC[k], 1); x.lineWidth = 1.6; x.stroke();
+    const [ex, ey] = pts[pts.length - 1]; x.fillStyle = rgba(KC[k], 1); x.beginPath(); x.arc(ex, ey, 2.4, 0, 7); x.fill();
+  }
 }

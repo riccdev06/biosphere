@@ -42,6 +42,15 @@
           </div>
         </div>
 
+        <div class="tour" id="tour" role="dialog" aria-labelledby="tour-title" hidden>
+          <div class="card">
+            <span class="eyebrow" id="tour-step">1 of 4</span>
+            <h3 id="tour-title"></h3>
+            <p id="tour-text"></p>
+            <div class="actions"><button id="tour-next" type="button" class="primary">Next</button><button id="tour-back" type="button">Back</button><span class="spacer"></span><button id="tour-skip" type="button" class="link">Skip guide</button></div>
+          </div>
+        </div>
+
         <div class="overlay" id="ask" hidden>
           <div class="card" role="dialog" aria-labelledby="ask-title">
             <h3 id="ask-title"></h3>
@@ -59,6 +68,8 @@
           <button type="button" data-speed="16" aria-pressed="false">16×</button>
         </div>
         <button id="sound" type="button" aria-pressed="false">Sound off</button>
+        <button id="postcard-btn" type="button">Postcard</button>
+        <button id="help" type="button" aria-label="Show the guide">?</button>
         <span class="spacer"></span>
         <div class="seg" role="group" aria-label="Tool">
           <button type="button" data-tool="inspect" aria-pressed="true">Inspect</button>
@@ -112,7 +123,8 @@
           <h3>Brain, live</h3>
           <canvas class="chart" id="brain"></canvas>
           <p class="note">Light lines excite, coral lines inhibit, thickness is strength. Memory feeds its own output back in on the next step.</p>
-          <div class="row"><button id="best" type="button" class="small">Show the most evolved</button><button id="export" type="button" class="small">Export as champion</button></div>
+          <div class="row"><button id="best" type="button" class="small">Show the most evolved</button><button id="test" type="button" class="small">Test this brain</button><button id="export" type="button" class="small">Export as champion</button></div>
+          <p class="note iq-result" id="iq-result" aria-live="polite" hidden></p>
           <div id="champ-out" class="champ" hidden>
             <p class="note" id="champ-note"></p>
             <textarea id="champ-code" readonly rows="3" aria-label="Champion code"></textarea>
@@ -131,6 +143,12 @@
       </div>
 
       <div class="panel" id="p-world" role="tabpanel" aria-labelledby="t-world" hidden>
+        <div class="sec">
+          <h3>Intelligence test</h3>
+          <p class="note">Every day a dozen creatures of each species run through the same small arenas as creatures with random brains. This is how much more food they find, or prey they catch.</p>
+          <div class="iq" id="iq-rows"></div>
+          <canvas class="chart" id="iq-chart"></canvas>
+        </div>
         <div class="sec">
           <div class="counts" id="counts"></div>
           <canvas class="chart" id="pop"></canvas>
@@ -175,6 +193,15 @@
         <ul id="journal"></ul>
       </div>
     </aside>
+  </div>
+
+  <div class="modal" id="postcard" role="dialog" aria-labelledby="pc-title" hidden>
+    <div class="card wide">
+      <div class="row"><h3 id="pc-title">Your world's postcard</h3><button id="pc-close" type="button" class="small">Close</button></div>
+      <img id="pc-img" alt="A postcard of your world with its day, season and most evolved species">
+      <p class="note" id="pc-note">Press and hold, or right-click, the picture to save it.</p>
+      <div class="actions"><button id="pc-share" type="button" class="primary" hidden>Share</button><button id="pc-save" type="button" hidden>Save image</button><button id="pc-again" type="button">New snapshot</button></div>
+    </div>
   </div>
 
   <footer>Biosphere is open source. Everything runs in your browser and nothing is sent anywhere.</footer>

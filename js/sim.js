@@ -5,27 +5,28 @@ const CS = 20, GX = W / CS, GY = H / CS, HW = W / 2, HH = H / 2;
 export const DAY = 2400;                 // ticks per day
 export const SEASON = 6000;              // ticks per season
 export const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
-const GROWTH = [1.35, 1.0, 0.7, 0.4];
+const GROWTH = [1.35, 1.0, 0.75, 0.5];
 const MAX_PLANTS = 3400;
+export const CARRION_T = 2600;     // ticks before carrion rots away
 
 export const N_IN = 14, N_H = 8, N_OUT = 3;
 export const OUT_LABELS = ['Steer', 'Speed', 'Memory'];
 
 // Who eats what. prey: kinds this one can hunt; ratio: how big a prey it can take down.
 export const KINDS = [
-  { key: 'herb', name: 'Herbivore', plural: 'Herbivores', baseSp: 0.85, baseR: 26, cost: 1.0, maxAge: 4200, cap: 560, min: 24, start: 220,
-    hue: 195, sat: 58, lit: 72, score: 'Meals', plants: 1, prey: [], carrion: 0, berriesOnly: false, flies: false,
+  { key: 'herb', name: 'Herbivore', plural: 'Herbivores', baseSp: 0.85, baseR: 26, cost: 1.0, maxAge: 4200, cap: 560, min: 15, start: 220,
+    hue: 195, sat: 58, lit: 72, score: 'Meals', plants: 1.15, prey: [], carrion: 0, berriesOnly: false, flies: false,
     food: 'Food', danger: 'Danger' },
-  { key: 'pred', name: 'Predator', plural: 'Predators', baseSp: 1.0, baseR: 32, cost: 1.45, maxAge: 4800, cap: 80, min: 6, start: 26,
-    hue: 12, sat: 86, lit: 64, score: 'Kills', plants: 0, prey: [0, 2, 3], ratio: 1.35, preyGain: 0.9, carrion: 0.25, flies: false,
+  { key: 'pred', name: 'Predator', plural: 'Predators', baseSp: 1.0, baseR: 32, cost: 1.3, maxAge: 4800, cap: 60, min: 4, start: 26, breed: 0.75, breedAge: 300,
+    hue: 12, sat: 86, lit: 64, score: 'Kills', plants: 0, prey: [0, 2], ratio: 1.35, preyGain: 0.9, carrion: 0.5, flies: false,
     food: 'Prey', danger: 'Rival' },
-  { key: 'omni', name: 'Omnivore', plural: 'Omnivores', baseSp: 0.9, baseR: 28, cost: 0.88, maxAge: 4500, cap: 120, min: 8, start: 36,
-    hue: 44, sat: 80, lit: 62, score: 'Meals', plants: 0.9, prey: [0], ratio: 0.8, preyGain: 0.6, carrion: 0.4, flies: false,
+  { key: 'omni', name: 'Omnivore', plural: 'Omnivores', baseSp: 0.9, baseR: 28, cost: 0.88, maxAge: 4500, cap: 120, min: 5, start: 36,
+    hue: 44, sat: 80, lit: 62, score: 'Meals', plants: 0.78, prey: [0], ratio: 0.8, preyGain: 0.6, carrion: 0.4, flies: false,
     food: 'Food', danger: 'Danger' },
-  { key: 'scav', name: 'Scavenger', plural: 'Scavengers', baseSp: 0.8, baseR: 40, cost: 0.8, maxAge: 5200, cap: 80, min: 6, start: 30,
+  { key: 'scav', name: 'Scavenger', plural: 'Scavengers', baseSp: 0.8, baseR: 52, cost: 0.65, maxAge: 6000, cap: 90, min: 4, start: 30,
     hue: 278, sat: 52, lit: 70, score: 'Carcasses', plants: 0, prey: [], carrion: 1, flies: false,
     food: 'Carrion', danger: 'Danger' },
-  { key: 'fly', name: 'Flyer', plural: 'Flyers', baseSp: 1.25, baseR: 40, cost: 0.82, maxAge: 3800, cap: 130, min: 6, start: 30,
+  { key: 'fly', name: 'Flyer', plural: 'Flyers', baseSp: 1.25, baseR: 40, cost: 0.82, maxAge: 3800, cap: 130, min: 4, start: 30,
     hue: 330, sat: 70, lit: 82, score: 'Berries', plants: 1, berriesOnly: true, prey: [], carrion: 0, flies: true,
     food: 'Berry', danger: 'Danger' },
 ];
@@ -42,11 +43,11 @@ export function labelsFor(k) {
 export const DEEP = 0, SHALLOW = 1, SAND = 2, GRASS = 3, ROCK = 4;
 
 export const EVENTS = {
-  drought: { name: 'Drought', days: 1.6, growth: 0.3, water: -1 },
-  flood: { name: 'Floods', days: 1.2, growth: 1.1, water: 1 },
-  bloom: { name: 'Bloom', days: 0.8, growth: 3.2, water: 0 },
-  frost: { name: 'Cold snap', days: 1.3, growth: 0.12, water: 0, cost: 1.25 },
-  meteor: { name: 'Meteor', days: 0.4, growth: 1, water: 0 },
+  drought: { name: 'Drought', days: 0.75, growth: 0.45, water: -1 },
+  flood: { name: 'Floods', days: 0.6, growth: 1.1, water: 1 },
+  bloom: { name: 'Bloom', days: 0.5, growth: 3.0, water: 0 },
+  frost: { name: 'Cold snap', days: 0.55, growth: 0.35, water: 0, cost: 1.12 },
+  meteor: { name: 'Meteor', days: 0.3, growth: 1, water: 0 },
 };
 
 // ---------- random numbers ----------
@@ -116,6 +117,76 @@ function mutateArr(rng, src, rate = 1) {
   return w;
 }
 
+// One step of thinking: senses -> hidden layer -> steer, speed, memory.
+export function think(brain, inp, hid, out) {
+  const { w1, w2 } = brain;
+  for (let h = 0; h < N_H; h++) { let s = 0; const o = h * N_IN; for (let i = 0; i < N_IN; i++) s += w1[o + i] * inp[i]; hid[h] = Math.tanh(s); }
+  for (let o = 0; o < N_OUT; o++) { const b = o * (N_H + 1); let s = w2[b + N_H]; for (let h = 0; h < N_H; h++) s += w2[b + h] * hid[h]; out[o] = Math.tanh(s); }
+}
+// Turns a nearest-thing hit into three senses: how far to the side, how far ahead, how close.
+function senseInto(inp, off, a, hit, R) {
+  if (!hit) { inp[off] = 0; inp[off + 1] = 0; inp[off + 2] = 0; return; }
+  const ca = Math.cos(a), sa = Math.sin(a), d = hit.d || 1e-3;
+  inp[off] = (-hit.dx * sa + hit.dy * ca) / d;
+  inp[off + 1] = (hit.dx * ca + hit.dy * sa) / d;
+  inp[off + 2] = Math.max(0, 1 - hit.d / R);
+}
+
+// ---------- intelligence test ----------
+// A brain is dropped into a small, flat arena for a fixed time. Plant eaters and scavengers
+// look for food; predators chase wandering prey; herbivores and omnivores also have to dodge
+// a hunter. The score is how much food it finds before it starves or gets caught.
+// The same arenas are used for every brain, so evolved brains and random ones get a fair race.
+const ARENA = 160, ARENA_STEPS = 600, ARENA_FOOD = 26;
+export function trial(brain, k, arenaSeed) {
+  const K = KINDS[k], r = new RNG(arenaSeed * 7919 + k * 104729), A = ARENA, HA = A / 2;
+  const d = (a, b) => { let v = b - a; if (v > HA) v -= A; else if (v < -HA) v += A; return v; };
+  const food = []; for (let i = 0; i < ARENA_FOOD; i++) food.push({ x: r.next() * A, y: r.next() * A, a: r.next() * 6.28 });
+  const hunted = DANGER[k].length > 0;
+  const hunter = hunted ? { x: r.next() * A, y: r.next() * A } : null;
+  const me = { x: A / 2, y: A / 2, a: r.next() * 6.28, e: 1.2, mem: 0 };
+  const inp = new Float32Array(N_IN), hid = new Float32Array(N_H), out = new Float32Array(N_OUT);
+  const R = K.baseR, sp0 = K.baseSp, moving = k === 1;
+  let score = 0;
+  for (let t = 0; t < ARENA_STEPS; t++) {
+    let best = null, bd = R * R;
+    for (const f of food) { const dx = d(me.x, f.x), dy = d(me.y, f.y), q = dx * dx + dy * dy; if (q < bd) { bd = q; best = { o: f, dx, dy, d: Math.sqrt(q) }; } }
+    senseInto(inp, 0, me.a, best, R);
+    let hd = null;
+    if (hunter) { const dx = d(me.x, hunter.x), dy = d(me.y, hunter.y), q = Math.sqrt(dx * dx + dy * dy); if (q < R) hd = { dx, dy, d: q }; }
+    senseInto(inp, 3, me.a, hd, R);
+    inp[6] = inp[7] = inp[8] = inp[9] = inp[10] = 0;
+    inp[11] = me.e / 2.4 * 2 - 1; inp[12] = me.mem; inp[13] = 1;
+    think(brain, inp, hid, out);
+    me.mem = out[2]; me.a += out[0] * 0.3;
+    const sp = (out[1] + 1) * 0.5 * sp0;
+    me.x = (me.x + Math.cos(me.a) * sp + A) % A; me.y = (me.y + Math.sin(me.a) * sp + A) % A;
+    me.e -= (0.0011 + 0.0032 * sp * sp + 0.0005) * K.cost;
+    if (best && best.d < 2.3) {
+      score++; me.e = Math.min(2.4, me.e + 0.4);
+      best.o.x = r.next() * A; best.o.y = r.next() * A;
+    }
+    if (moving) for (const f of food) { f.a += (r.next() - .5) * 0.6; f.x = (f.x + Math.cos(f.a) * 0.45 + A) % A; f.y = (f.y + Math.sin(f.a) * 0.45 + A) % A; }
+    if (hunter) {
+      const dx = d(hunter.x, me.x), dy = d(hunter.y, me.y), q = Math.sqrt(dx * dx + dy * dy) || 1;
+      const hs = q < 34 ? 0.72 : 0.3;
+      hunter.x = (hunter.x + dx / q * hs + A) % A; hunter.y = (hunter.y + dy / q * hs + A) % A;
+      if (q < 2) break;          // caught
+    }
+    if (me.e <= 0) break;        // starved
+  }
+  return score;
+}
+const TRIAL_ARENAS = [1, 2, 3];
+const baselineCache = new Map();
+// The random-brain score is the same for every world, so it is worked out once and kept.
+export function baseline(k) {
+  if (baselineCache.has(k)) return baselineCache.get(k);
+  const r = new RNG(424242 + k); let sum = 0, n = 0;
+  for (let i = 0; i < 24; i++) { const b = makeBrain(r); for (const s of TRIAL_ARENAS) { sum += trial(b, k, s); n++; } }
+  const v = sum / n; baselineCache.set(k, v); return v;
+}
+
 // ---------- the world ----------
 export class World {
   constructor(seed) {
@@ -134,6 +205,7 @@ export class World {
     this.waterLevel = 0; this.waterTarget = 0;
     this.meteors = [];
     this.fx = []; this.fxOn = false; this.fightsToday = 0;
+    this.iq = new Array(NK).fill(null); this.iqHistory = []; this.iqMark = new Array(NK).fill(0);
     this.grids = Array.from({ length: NK + 3 }, () => Array.from({ length: GX * GY }, () => []));
   }
 
@@ -143,6 +215,7 @@ export class World {
     for (let k = 0; k < NK; k++) for (let i = 0; i < KINDS[k].start; i++) w.spawnRandom(k);
     w.addLog(`World "${seed}" is born. Five species start out with random brains.`);
     for (let i = 0; i < warmup; i++) w.tick();
+    for (let k = 0; k < NK; k++) w.measureIQ(k, true);
     return w;
   }
 
@@ -248,7 +321,7 @@ export class World {
   }
   maxE(c) { return 2.4 * c.size; }
   maxSp(c) { return KINDS[c.k].baseSp * c.spd / Math.sqrt(c.size); }
-  sightR(c) { return Math.min(46, KINDS[c.k].baseR * c.sight * (1 - this.darkness * (c.k === 1 ? 0.25 : 0.4))); }
+  sightR(c) { return Math.min(c.k === 3 ? 64 : 46, KINDS[c.k].baseR * c.sight * (1 - this.darkness * (c.k === 1 ? 0.25 : 0.4))); }
 
   // ----- spatial grid -----
   // grids[0..NK-1]: creatures by kind, NK: plants, NK+1: berries, NK+2: carrion
@@ -257,7 +330,7 @@ export class World {
     for (const g of G) for (let i = 0; i < g.length; i++) g[i].length = 0;
     const cell = (x, y) => ((y / CS) | 0) % GY * GX + ((x / CS) | 0) % GX;
     const gP = G[NK], gB = G[NK + 1], gX = G[NK + 2];
-    for (const p of this.plants) { const i = cell(p.x, p.y); gP[i].push(p); if (p.e > 0.55) gB[i].push(p); }
+    for (const p of this.plants) { const i = cell(p.x, p.y); gP[i].push(p); if (p.e > 0.45) gB[i].push(p); }
     for (const c of this.creatures) G[c.k][cell(c.x, c.y)].push(c);
     for (const d of this.corpses) gX[cell(d.x, d.y)].push(d);
   }
@@ -280,14 +353,7 @@ export class World {
     }
     return b ? { o: b, dx: bx, dy: by, d: Math.sqrt(bd) } : best;
   }
-  sense(c, off, hit, R) {
-    const inp = c.inp;
-    if (!hit) { inp[off] = 0; inp[off + 1] = 0; inp[off + 2] = 0; return; }
-    const ca = Math.cos(c.a), sa = Math.sin(c.a), d = hit.d || 1e-3;
-    inp[off] = (-hit.dx * sa + hit.dy * ca) / d;
-    inp[off + 1] = (hit.dx * ca + hit.dy * sa) / d;
-    inp[off + 2] = Math.max(0, 1 - hit.d / R);
-  }
+  sense(c, off, hit, R) { senseInto(c.inp, off, c.a, hit, R); }
   waterAt(c, ang, dist) { return this.isWater(c.x + Math.cos(c.a + ang) * dist, c.y + Math.sin(c.a + ang) * dist) ? 1 : 0; }
 
   // ----- one step -----
@@ -299,10 +365,10 @@ export class World {
     const g = this.growth;
 
     // plants
-    const att = 22 * g; let n = Math.floor(att) + (r.next() < att % 1 ? 1 : 0);
+    const att = 26 * g; let n = Math.floor(att) + (r.next() < att % 1 ? 1 : 0);
     while (n-- > 0 && this.plants.length < MAX_PLANTS) this.growPlant(false);
     let anyDead = false;
-    const wither = (season === 3 ? 0.00025 : 0) + (this.event && this.event.type === 'drought' ? 0.0004 : 0);
+    const wither = (season === 3 ? 0.0002 : 0) + (this.event && this.event.type === 'drought' ? 0.00025 : 0);
     const grow = 0.003 * Math.min(g, 1.6);
     for (const p of this.plants) {
       if (p.dead) { anyDead = true; continue; }
@@ -345,9 +411,7 @@ export class World {
       else if (((T + c.id) % 3) === 0) { c.inp[9] = this.waterAt(c, 0, 3) || this.waterAt(c, 0, 6) * 0.5; c.inp[10] = this.waterAt(c, 0.7, 5) - this.waterAt(c, -0.7, 5); }
       c.inp[11] = c.e / this.maxE(c) * 2 - 1; c.inp[12] = c.mem; c.inp[13] = 1;
       // think
-      const { w1, w2 } = c.brain;
-      for (let h = 0; h < N_H; h++) { let s = 0; const o = h * N_IN; for (let i = 0; i < N_IN; i++) s += w1[o + i] * c.inp[i]; c.hid[h] = Math.tanh(s); }
-      for (let o = 0; o < N_OUT; o++) { const b = o * (N_H + 1); let s = w2[b + N_H]; for (let h = 0; h < N_H; h++) s += w2[b + h] * c.hid[h]; c.out[o] = Math.tanh(s); }
+      think(c.brain, c.inp, c.hid, c.out);
       c.mem = c.out[2];
       // move
       c.a += c.out[0] * 0.3;
@@ -355,17 +419,21 @@ export class World {
       const nx = c.x + Math.cos(c.a) * sp, ny = c.y + Math.sin(c.a) * sp;
       if (!K.flies && this.isWater(nx, ny) && !this.isWater(c.x, c.y)) { c.a += (r.next() < .5 ? 1 : -1) * 0.9; c.e -= 0.002; }
       else { c.x = wrap(nx, W); c.y = wrap(ny, H); }
-      c.e -= (0.0011 * c.size + 0.0032 * sp * sp * c.size + 0.0005 * c.sight) * K.cost * costMul;
+      // starving creatures slow their metabolism, which lets a few survive the lean times
+      const torpor = c.e < 0.25 * this.maxE(c) ? 0.5 : 1;
+      c.e -= (0.0011 * c.size * torpor + 0.0032 * sp * sp * c.size + 0.0005 * c.sight) * K.cost * costMul;
       c.age++;
       // eat
       const reach = 1.4 + c.size * 0.9;
       if (food && food.d < reach && !food.o.dead) {
         const o = food.o;
         if (o.brain) { // live prey
-          if (o.size <= c.size * K.ratio) {
-            o.dead = true; o.eaten = true; c.e += (0.35 + 0.4 * o.e) * K.preyGain; c.score++; this.stats.eaten++;
+          // bigger prey and well-fed prey escape more often; the hunter leaves leftovers for scavengers
+          if (o.size <= c.size * K.ratio && r.next() < 0.55 - 0.15 * (o.size / c.size - 0.7) - (o.k === 2 ? 0.25 : 0)) { // omnivores fight back
+            o.dead = true; o.eaten = true; c.e += (0.3 + 0.35 * o.e) * K.preyGain; c.score++; this.stats.eaten++;
+            this.corpses.push({ x: o.x, y: o.y, e: 0.2 + 0.15 * o.size, t: CARRION_T, k: o.k, dead: false });
             this.emit('kill', o.x, o.y, c.k);
-          }
+          } else if (o.size <= c.size * K.ratio) { o.a += Math.PI * 0.8; }
         } else if (o.t !== undefined) { // carrion
           const bite = Math.min(o.e, c.k === 3 ? 0.32 : 0.25); o.e -= bite; c.e += bite * K.carrion * (c.k === 3 ? 1.6 : 1);
           if (c.k === 3 && o.e <= 0) c.score++;
@@ -381,7 +449,9 @@ export class World {
       }
       const mE = this.maxE(c); if (c.e > mE) c.e = mE;
       // reproduce
-      if (c.e >= 0.66 * mE && c.age > 150 && count[c.k] < K.cap) {
+      // crowding makes breeding rarer, so populations level off instead of slamming into the cap
+      const crowd = count[c.k] / K.cap;
+      if (c.k === 1 ? r.next() < 1 - crowd : true) if (c.e >= (K.breed || 0.66) * mE && c.age > (K.breedAge || 150) && count[c.k] < K.cap && (c.k === 1 || r.next() < 1 - crowd * crowd * crowd)) {
         const childE = c.e * 0.45; c.e -= childE; c.kids++; count[c.k]++;
         const mut = v => v + r.gauss() * 0.05;
         let cx = wrap(c.x + (r.next() - .5) * 5, W), cy = wrap(c.y + (r.next() - .5) * 5, H);
@@ -408,6 +478,8 @@ export class World {
     if (T % 60 === 0) this.countLineages();
     if (T % 100 === 0) this.sample();
     if (T % 1200 === 0) this.pruneFamily();
+    { const slot = T % DAY; if (slot % 400 === 0 && slot / 400 < NK) this.measureIQ(slot / 400); }
+    if (T % DAY === 0) this.recordIQ();
     if (T % DAY === 0) {
       if (this.fightsToday > 400) this.addLog(`Territory wars: predators clashed ${this.fightsToday.toLocaleString('en-US')} times today. The biggest ones hold the best hunting grounds.`);
       this.fightsToday = 0;
@@ -419,7 +491,7 @@ export class World {
     for (const c of this.creatures) {
       if (!c.dead) { alive.push(c); continue; }
       this.stats.deaths++; this.noteDeath(c);
-      if (!c.eaten) { this.corpses.push({ x: c.x, y: c.y, e: 0.25 + 0.3 * c.size, t: 1800, k: c.k, dead: false }); this.emit('death', c.x, c.y, c.k); }
+      if (!c.eaten) { this.corpses.push({ x: c.x, y: c.y, e: 0.25 + 0.3 * c.size, t: CARRION_T, k: c.k, dead: false }); this.emit('death', c.x, c.y, c.k); }
     }
     for (const b of born) alive.push(b);
     this.creatures = alive;
@@ -554,6 +626,38 @@ export class World {
   counts() { const n = new Array(NK).fill(0); for (const c of this.creatures) if (!c.dead) n[c.k]++; return n; }
   topLineages(n = 6) { return [...this.lineages.values()].filter(l => l.count > 0).sort((a, b) => b.count - a.count).slice(0, n); }
 
+  // ----- intelligence -----
+  // Runs a dozen grown-up members of species k through the arenas and compares them with random brains.
+  measureIQ(k, quiet) {
+    const pop = this.creatures.filter(c => c.k === k && c.age > 200);
+    if (pop.length < 3) return;
+    const n = Math.min(12, pop.length), step = pop.length / n;
+    let sum = 0, cnt = 0;
+    for (let i = 0; i < n; i++) { const c = pop[Math.floor(i * step)]; for (const a of TRIAL_ARENAS) { sum += trial(c.brain, k, a); cnt++; } }
+    const score = sum / cnt, base = baseline(k), ratio = score / Math.max(0.5, base);
+    this.iq[k] = { t: this.T, score: +score.toFixed(2), base: +base.toFixed(2), ratio: +ratio.toFixed(2) };
+    if (quiet) return;
+    const marks = [2, 3, 5, 10, 20, 40];
+    const next = marks.findIndex(m => m > (this.iqMark[k] || 0));
+    if (next >= 0 && ratio >= marks[next]) {
+      let m = marks[next]; for (const x of marks) if (ratio >= x) m = x;
+      this.iqMark[k] = m;
+      const what = k === 1 ? 'catch' : k === 3 ? 'find' : 'find';
+      const food = k === 1 ? 'prey' : k === 3 ? 'carrion' : k === 4 ? 'berries' : 'food';
+      this.addLog(`Intelligence test: ${KINDS[k].plural.toLowerCase()} now ${what} ${m}× more ${food} than random brains.`, 'iq');
+    }
+  }
+  recordIQ() {
+    this.iqHistory.push({ t: this.T, r: this.iq.map(q => q ? q.ratio : null) });
+    if (this.iqHistory.length > 240) this.iqHistory.shift();
+  }
+  testBrain(id) {
+    const c = this.creatures.find(x => x.id === id); if (!c) return null;
+    let sum = 0; for (const a of TRIAL_ARENAS) sum += trial(c.brain, c.k, a);
+    const score = sum / TRIAL_ARENAS.length, base = baseline(c.k);
+    return { id, k: c.k, name: creatureName(id), score: +score.toFixed(1), base: +base.toFixed(1), ratio: +(score / Math.max(0.5, base)).toFixed(1) };
+  }
+
   // ----- family tree -----
   family(id) {
     const a = this.anc.get(id); if (!a) return null;
@@ -640,6 +744,7 @@ export class World {
       anc: [...this.anc.values()].map(a => [a.id, a.p, a.k, a.g, a.b, a.d, a.kids, a.lin, Math.round(a.hue), a.s]),
       history: this.history, log: this.log, stats: this.stats, records: this.records,
       lastRescue: this.lastRescue, genMark: this.genMark,
+      iq: this.iq, iqHistory: this.iqHistory, iqMark: this.iqMark,
       event: this.event, nextEventAt: this.nextEventAt, waterLevel: this.waterLevel, waterTarget: this.waterTarget, meteors: this.meteors,
       bonus: (() => { const o = []; const b = this.bonus; for (let i = 0; i < b.length; i++) if (b[i] > 0.01) o.push(i, Math.round(b[i] * 100)); return o; })(),
     };
@@ -659,6 +764,7 @@ export class World {
     w.anc = new Map(d.anc.map(a => [a[0], { id: a[0], p: a[1], k: a[2], g: a[3], b: a[4], d: a[5], kids: a[6], lin: a[7], hue: a[8], s: a[9] }]));
     w.history = d.history; w.log = d.log; w.stats = d.stats; w.records = d.records;
     w.lastRescue = d.lastRescue; w.genMark = d.genMark;
+    if (d.iq) { w.iq = d.iq; w.iqHistory = d.iqHistory || []; w.iqMark = d.iqMark || w.iqMark; }
     w.event = d.event; w.nextEventAt = d.nextEventAt; w.waterLevel = d.waterLevel; w.waterTarget = d.waterTarget; w.meteors = d.meteors || [];
     if (w.waterLevel) w.classify(w.waterLevel);
     if (Array.isArray(d.bonus)) for (let i = 0; i < d.bonus.length; i += 2) w.bonus[d.bonus[i]] = d.bonus[i + 1] / 100;

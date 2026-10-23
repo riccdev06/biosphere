@@ -1,7 +1,7 @@
 // Wires the page together: the simulation runs in a worker, this file draws it and runs the interface.
 import { KINDS, SEASONS, DAY, W, H, tdelta, randomSeed, cleanSeed } from './sim.js';
 import { Renderer, kindCss, lineCss } from './render.js';
-import { drawBrain, drawPopulation, drawTrait } from './charts.js';
+import { drawBrain, drawPopulation, drawTrait, drawIQ } from './charts.js';
 import { writeSave, readSave, storageWorks } from './storage.js';
 import { Ambience } from './audio.js';
 
@@ -48,6 +48,7 @@ worker && (worker.onmessage = e => {
       ready = true; hideLoading(); seed = m.seed; $('seed').value = seed;
       try { history.replaceState(null, '', '#' + seed); } catch (err) {}
       if (m.fresh) requestSave('new');
+      if (m.fresh && !toured()) setTimeout(() => showTour(0), 600);
       if (!m.catchingUp) setTimeout(renderPanels, 50);
       break;
     case 'loadFailed':
@@ -55,11 +56,20 @@ worker && (worker.onmessage = e => {
       send({ type: 'new', seed: randomSeed() });
       break;
     case 'catchupStart': startAway(m.away, m.total); break;
-    case 'progress': $('away-bar').style.width = (m.done / m.total * 100).toFixed(1) + '%';
+    case 'progress': $('away-bar').style.width = Math.min(100, (m.frac || m.done / m.total) * 100).toFixed(1) + '%';
       $('away-days').textContent = `${days(m.done)} of ${days(m.total)} days`; break;
     case 'caughtup': finishAway(m.summary); break;
     case 'saved': if (canSave) { lastSave = writeSave(m.json); } break;
     case 'picked': diedNote = ''; showPicked(m.name); break;
+    case 'brainTest': {
+      const r = m.result, el = $('iq-result'); el.hidden = false;
+      if (!r) { el.textContent = 'This creature died before the test could run.'; break; }
+      const unit = KINDS[r.k].score.toLowerCase();
+      el.textContent = r.ratio >= 1.2
+        ? `${r.name} scored ${r.score} ${unit} in the arenas. Random brains average ${r.base}, so this brain is ${r.ratio}× better.`
+        : `${r.name} scored ${r.score} ${unit} in the arenas, about the same as a random brain (${r.base}). Its line still has some learning to do.`;
+      break;
+    }
     case 'champion':
       $('champ-out').hidden = false; $('champ-code').value = m.code;
       $('champ-note').textContent = `${m.name} is ready to travel. Send this code to a friend. In their world it arrives with five offspring.`;
@@ -101,11 +111,20 @@ function finishAway(s) {
   $('away-title').textContent = `${days(s.ticks)} days went by`;
   $('away-text').innerHTML = `<b>${fmt(s.births)}</b> creatures were born and <b>${fmt(s.deaths)}</b> died. ` +
     `${KINDS[best].plural} evolved the most, from generation ${g0[best]} to <b>${g1[best]}</b>. ` +
-    `Now alive: ${s.counts.map((n, k) => `${n} ${KINDS[k].plural.toLowerCase()}`).join(', ')}.`;
+    iqSentence(s) + `Now alive: ${s.counts.map((n, k) => `${n} ${KINDS[k].plural.toLowerCase()}`).join(', ')}.`;
+  if (s.missed) $('away-text').innerHTML += ` To keep the wait short on this device, Biosphere replayed ${days(s.ticks)} of the ${days(s.missed)} days you were away.`;
   $('away-list').innerHTML = s.news.map(t => `<li>${esc(t)}</li>`).join('');
   $('away-list').hidden = !s.news.length; $('away-progress').hidden = true;
   $('away-btn').textContent = 'Continue'; $('away-btn').onclick = () => { $('away').hidden = true; };
   requestSave('caughtup'); renderPanels();
+}
+function iqSentence(s) {
+  if (!s.iqTo) return '';
+  let best = -1, gain = 0;
+  s.iqTo.forEach((v, k) => { const a = (s.iqFrom && s.iqFrom[k]) || 1; if (v && v / a > gain) { gain = v / a; best = k; } });
+  if (best < 0 || gain < 1.15) return '';
+  const a = s.iqFrom && s.iqFrom[best];
+  return `In the intelligence test, ${KINDS[best].plural.toLowerCase()} went ${a ? `from ${a.toFixed(1)}× ` : ''}to <b>${s.iqTo[best].toFixed(1)}×</b> better than random brains. `;
 }
 function ask(title, text, yesLabel, onYes) {
   $('ask').hidden = false; $('ask-title').textContent = title; $('ask-text').textContent = text; $('ask-yes').textContent = yesLabel;
@@ -147,7 +166,7 @@ function renderCreature(withBrain) {
   setGene('size', c.size); setGene('spd', c.spd); setGene('sight', c.sight);
   $('follow').setAttribute('aria-pressed', follow); $('follow').textContent = follow ? 'Following' : 'Follow';
   if (withBrain) drawBrain($('brain'), c);
-  if (c.id !== lastSelId) { lastSelId = c.id; $('champ-out').hidden = true; send({ type: 'family' }); }
+  if (c.id !== lastSelId) { lastSelId = c.id; $('champ-out').hidden = true; $('iq-result').hidden = true; send({ type: 'family' }); }
 }
 function renderFamily() {
   const f = family;
@@ -178,7 +197,18 @@ function renderCounts() {
   $('counts').innerHTML = KINDS.map((K, k) => `<span style="color:${kindCss(k)}"><b>${n[k] ?? 0}</b>${K.plural.toLowerCase()}</span>`).join('') +
     `<span style="color:var(--plant)"><b>${fmt(info.plants || 0)}</b>plants</span>`;
 }
+function renderIQ() {
+  const iq = info.iq || [];
+  $('iq-rows').innerHTML = KINDS.map((K, k) => {
+    const q = iq[k];
+    if (!q) return `<div class="iq-row"><span style="color:${kindCss(k)}">${K.plural}</span><span class="track"></span><span class="v">—</span><small>Too few adults to test right now.</small></div>`;
+    const w = Math.max(3, Math.min(100, Math.log(Math.max(1, q.ratio)) / Math.log(30) * 100));
+    return `<div class="iq-row"><span style="color:${kindCss(k)}">${K.plural}</span><span class="track"><b style="width:${w.toFixed(1)}%;background:${kindCss(k)}"></b></span><span class="v">${q.ratio.toFixed(1)}×</span><small>${q.score.toFixed(1)} ${K.score.toLowerCase()} per test, random brains ${q.base.toFixed(1)}</small></div>`;
+  }).join('');
+  drawIQ($('iq-chart'), info.iqHistory);
+}
 function renderWorldTab() {
+  renderIQ();
   renderCounts();
   drawPopulation($('pop'), info.history || []);
   drawTrait($('tr-spd'), info.history || [], 'spd');
@@ -277,6 +307,7 @@ $('zout').onclick = () => { const r = $('view').getBoundingClientRect(); rendere
 $('tree').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) { diedNote = ''; send({ type: 'select', id: +b.dataset.id }); setTimeout(() => send({ type: 'family' }), 60); } });
 
 // champions
+$('test').onclick = () => { if (frame && frame.sel) { $('iq-result').hidden = false; $('iq-result').textContent = 'Running the arenas…'; send({ type: 'testBrain', id: frame.sel.id }); } };
 $('export').onclick = () => { if (frame && frame.sel) send({ type: 'export', id: frame.sel.id }); };
 $('champ-copy').onclick = () => {
   const t = $('champ-code').value;
@@ -361,6 +392,92 @@ function tap(px, py) {
   if (tool === 'inspect') { send({ type: 'pick', x, y, reach: 14 / renderer.cam.zoom + 2 }); return; }
   send({ type: 'tool', tool: tool === 'release' ? $('species').value : tool, x, y });
 }
+
+// ---------- first-visit guide ----------
+const TOUR = [
+  { title: 'This is your world', text: 'Five species live here, and every creature starts with a tiny random brain. Nobody tells them what to do. The ones that find food have children, and their brains are passed on with small changes.', target: '.stage' },
+  { title: 'Look inside a brain', text: 'Tap any creature to see its genes and watch its brain fire as it thinks. Press Follow to stay with it, and open Family to see its ancestors and children.', target: '#t-creature' },
+  { title: 'Watch them get smarter', text: 'Every day, the World tab runs an intelligence test: today’s creatures race random brains through the same arenas. In a few days they find many times more food.', target: '#t-world' },
+  { title: 'Shape it, then come back', text: 'Scatter plants, release new creatures or call down a meteor. Your world is saved in this browser and keeps evolving while you’re away, so come back tomorrow and see what happened.', target: '[aria-label="Tool"]' },
+];
+let tourAt = -1;
+const tourDone = () => { try { localStorage.setItem('biosphere:toured', '1'); } catch (e) {} };
+const toured = () => { try { return localStorage.getItem('biosphere:toured') === '1'; } catch (e) { return false; } };
+function showTour(i) {
+  document.querySelectorAll('.spot').forEach(e => e.classList.remove('spot'));
+  if (i < 0 || i >= TOUR.length) { $('tour').hidden = true; tourAt = -1; tourDone(); return; }
+  tourAt = i; const st = TOUR[i];
+  $('tour').hidden = false;
+  $('tour-step').textContent = `${i + 1} of ${TOUR.length}`;
+  $('tour-title').textContent = st.title; $('tour-text').textContent = st.text;
+  $('tour-next').textContent = i === TOUR.length - 1 ? 'Start exploring' : 'Next';
+  $('tour-back').hidden = i === 0;
+  const el = document.querySelector(st.target);
+  if (el && st.target !== '.stage') { el.classList.add('spot'); if (matchMedia('(max-width: 700px)').matches) el.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' }); }
+  $('tour-next').focus({ preventScroll: true });
+}
+$('tour-next').onclick = () => showTour(tourAt + 1);
+$('tour-back').onclick = () => showTour(tourAt - 1);
+$('tour-skip').onclick = () => showTour(-1);
+$('help').onclick = () => showTour(0);
+
+// ---------- postcard ----------
+async function makePostcard() {
+  try { await Promise.all([document.fonts.load('700 64px "Pixelify Sans"'), document.fonts.load('500 22px "IBM Plex Mono"'), document.fonts.load('400 24px "Atkinson Hyperlegible"')]); } catch (e) {}
+  const cw = 1200, ch = 675, cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
+  const s = 2.4, ox = cw / 2 - renderer.cam.x * s, oy = ch * 0.42 - renderer.cam.y * s;
+  for (let ky = -1; ky <= 1; ky++) for (let kx = -1; kx <= 1; kx++) x.drawImage(renderer.off, Math.round(ox + kx * W * s), Math.round(oy + ky * H * s), Math.ceil(W * s), Math.ceil(H * s));
+  const g = x.createLinearGradient(0, ch * 0.38, 0, ch); g.addColorStop(0, 'rgba(10,18,15,0)'); g.addColorStop(0.45, 'rgba(10,18,15,0.88)'); g.addColorStop(1, 'rgba(10,18,15,0.97)');
+  x.fillStyle = g; x.fillRect(0, 0, cw, ch);
+  const L = 48;
+  x.textBaseline = 'alphabetic';
+  x.font = '700 64px "Pixelify Sans", monospace'; x.fillStyle = '#ebe5d3'; x.fillText('Bio', L, 440);
+  const wBio = x.measureText('Bio').width; x.fillStyle = '#c2d86b'; x.fillText('sphere', L + wBio, 440);
+  x.font = '500 22px "IBM Plex Mono", monospace'; x.fillStyle = '#c2d86b';
+  const when = frame ? `Day ${fmt(frame.day)} · ${SEASONS[frame.season]} · year ${frame.year}` : '';
+  x.fillText(`"${seed}"   ${when}`, L, 482);
+  // species counts
+  const n = info.counts || []; let cx = L;
+  x.font = '500 21px "IBM Plex Mono", monospace';
+  KINDS.forEach((K, k) => {
+    x.fillStyle = kindCss(k); x.fillRect(cx, 516, 14, 14);
+    const t = `${n[k] ?? 0} ${K.plural.toLowerCase()}`; x.fillStyle = '#ebe5d3'; x.fillText(t, cx + 22, 530); cx += x.measureText(t).width + 50;
+  });
+  // headline facts
+  const iq = info.iq || []; let best = -1; iq.forEach((q, k) => { if (q && (best < 0 || q.ratio > iq[best].ratio)) best = k; });
+  const line = (info.lines || [])[0];
+  x.font = '400 24px "Atkinson Hyperlegible", sans-serif'; x.fillStyle = '#ebe5d3';
+  const facts = [];
+  if (best >= 0) facts.push(`${KINDS[best].plural} ${best === 1 ? 'catch' : 'find'} ${iq[best].ratio.toFixed(1)}× more ${best === 1 ? 'prey' : 'food'} than random brains`);
+  if (line) facts.push(`the ${line.name} line rules the ${KINDS[line.k].plural.toLowerCase()}`);
+  if (info.records) facts.push(`top generation ${Math.max(...info.records.maxGen)}`);
+  while (facts.length > 1 && x.measureText(facts.join('  ·  ')).width > cw - L * 2) facts.pop();
+  x.fillText(facts.join('  ·  '), L, 580);
+  x.font = '500 18px "IBM Plex Mono", monospace'; x.fillStyle = '#93a399';
+  x.fillText('Grow your own world: riccdev06.github.io/biosphere', L, 630);
+  return cv;
+}
+let pcCanvas = null;
+async function openPostcard() {
+  $('postcard').hidden = false; $('pc-note').textContent = 'Painting your postcard…';
+  pcCanvas = await makePostcard();
+  $('pc-img').src = pcCanvas.toDataURL('image/png');
+  const hosted = standalone && location.protocol !== 'file:';
+  $('pc-save').hidden = !standalone;
+  $('pc-share').hidden = true;
+  if (hosted && navigator.canShare) pcCanvas.toBlob(b => {
+    try { const f = new File([b], `biosphere-${seed}.png`, { type: 'image/png' }); if (navigator.canShare({ files: [f] })) { $('pc-share').hidden = false; $('pc-share').onclick = () => navigator.share({ files: [f], title: 'My Biosphere world', text: `My world "${seed}" on day ${frame ? frame.day : 1}` }).catch(() => {}); } } catch (e) {}
+  });
+  $('pc-note').textContent = standalone ? 'Save it or share it. The picture shows the world exactly as it looks right now.' : 'Press and hold, or right-click, the picture to save it.';
+  $('pc-close').focus();
+}
+$('postcard-btn').onclick = openPostcard;
+$('pc-again').onclick = openPostcard;
+$('pc-close').onclick = () => { $('postcard').hidden = true; };
+$('postcard').addEventListener('click', e => { if (e.target === $('postcard')) $('postcard').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('postcard').hidden = true; if (tourAt >= 0) showTour(-1); } });
+$('pc-save').onclick = () => { const a = document.createElement('a'); a.href = $('pc-img').src; a.download = `biosphere-${seed}-day-${frame ? frame.day : 1}.png`; document.body.appendChild(a); a.click(); a.remove(); };
 
 // ---------- start ----------
 window.addEventListener('resize', () => { renderer.resize(); renderPanels(); });

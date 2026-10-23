@@ -162,3 +162,35 @@ select:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); 
 .tree button.node:hover .nm { text-decoration: underline; }
 .tree button.node:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .tree .more { color: var(--muted); font-size: 13px; padding: 4px 0 0 0; }
+
+/* v4: intelligence, tour, postcard */
+.iq { display: grid; gap: 8px; }
+.iq-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) 52px; gap: 10px; align-items: center; font-size: 13.5px; }
+.iq-row .track { position: relative; height: 10px; background: var(--rule); border-radius: 2px; overflow: hidden; }
+.iq-row .track b { position: absolute; inset: 0 auto 0 0; border-radius: 2px; }
+.iq-row .v { font-family: var(--f-mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.iq-row small { grid-column: 2 / 4; color: var(--muted); font-size: 12px; margin-top: -6px; }
+.iq-result { color: var(--ink); background: var(--bed); border: 1px solid var(--rule); border-radius: 3px; padding: 8px 10px; }
+#help { width: 36px; padding-inline: 0; }
+button.link { border: 0; background: none; color: var(--muted); text-decoration: underline; padding-inline: 4px; }
+
+.tour { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px; display: grid; justify-items: center; pointer-events: none; }
+.tour .card { pointer-events: auto; max-width: 460px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); border-color: #3c5245; }
+.tour .actions { align-items: center; }
+.spot { outline: 2px solid var(--amber) !important; outline-offset: 3px; border-radius: 3px; animation: spot 1.4s ease-in-out infinite; }
+@keyframes spot { 50% { outline-color: rgba(242, 193, 78, .25); } }
+@media (prefers-reduced-motion: reduce) { .spot { animation: none; } }
+
+.modal { position: fixed; inset: 0; z-index: 30; background: rgba(6, 10, 9, .8); display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.card.wide { max-width: 760px; }
+#pc-img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 3px; background: var(--bed); aspect-ratio: 16 / 9; }
+@media (max-width: 520px) { .iq-row { grid-template-columns: 76px minmax(0, 1fr) 46px; } }
+/* charts never set their own width: they follow their column */
+.sec, .panel, .traits, .trait { grid-template-columns: minmax(0, 1fr); }
+canvas.chart { min-width: 0; max-width: 100%; }
+@media (max-width: 700px) {
+  .tour { position: fixed; z-index: 25; padding: 12px max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+  .tour .card { padding: 16px 18px; }
+  .card h3 { font-size: 20px; }
+}

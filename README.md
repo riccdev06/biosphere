@@ -8,14 +8,18 @@ Every visitor gets their own world. It is saved in the browser and **keeps evolv
 
 👉 **[Grow your world](https://riccdev06.github.io/biosphere/)**
 
+## Watch them get smarter
+
+Every creature starts with a random brain. Once a day, Biosphere runs an **intelligence test**: a dozen creatures of each species race creatures with random brains through the same small arenas, and the World tab shows how many times more food they find. In a typical world, herbivores find around 10× more food than random brains after ten days, and predators catch over 10× more prey. You can also test the brain of any single creature.
+
 ## Five species
 
 | | Species | Eats | Hunted by |
 |---|---|---|---|
 | 🟦 | **Herbivores** | plants and berries | predators, omnivores |
-| 🟥 | **Predators** | herbivores, omnivores, scavengers, carrion | bigger predators push them out of their territory |
+| 🟥 | **Predators** | herbivores, omnivores (which fight back), carrion | bigger predators push them out of their territory |
 | 🟨 | **Omnivores** | plants, small herbivores, carrion | predators |
-| 🟪 | **Scavengers** | only carrion | predators |
+| 🟪 | **Scavengers** | only carrion, including what predators leave behind | nobody |
 | 🩷 | **Flyers** | ripe berries, and they fly over water | nobody |
 
 ## What's inside
@@ -30,10 +34,12 @@ Every visitor gets their own world. It is saved in the browser and **keeps evolv
 - **Champions.** Export your best creature as a code and send it to a friend. In their world it arrives with five offspring, so worlds can challenge each other.
 - **Ambient sound.** Birdsong by day, crickets at night, rain and wind, all synthesized in the browser. Off by default.
 - **Play god.** Scatter plants, release any species, or call down a meteor.
+- **Postcards.** Turn your world into a picture with its day, season and smartest species, ready to share.
+- **A short guide** on your first visit, and anytime from the ? button.
 
 ## While you're away
 
-Your world is stored in `localStorage`. When you come back, the simulation replays the time you missed in the background while you watch it fast-forward: one step per second away for the first 6 hours, then one step every 3 seconds, up to 15 world days. Then you get a summary of births, deaths, extinctions, climate events and how far each species evolved.
+Your world is stored in `localStorage`. When you come back, the simulation replays the time you missed in the background while you watch it fast-forward: one step per second away for the first 6 hours, then one step every 3 seconds, up to 15 world days. On slower devices it stops after about 30 seconds and tells you how much it replayed. Then you get a summary of births, deaths, extinctions, climate events and how far each species evolved.
 
 The world lives in one browser: your phone and your computer each have their own.
 
@@ -54,6 +60,14 @@ python3 -m http.server
 # then open http://localhost:8000
 ```
 
+## Tests
+
+```bash
+npm test
+```
+
+The tests use Node's built-in runner and need no installs. They check that worlds are reproducible, saves load back, champions travel, and that after four days evolved brains beat random ones without the ecosystem falling apart.
+
 ## Project structure
 
 ```
@@ -65,15 +79,13 @@ js/render.js      pixel renderer, camera, weather and effects
 js/charts.js      brain diagram and charts
 js/audio.js       synthesized ambient sound
 js/storage.js     saving your world in localStorage
-js/main.js        interface and controls
+js/main.js        interface, guide, postcard and controls
+test/             tests for the simulation
 ```
 
-## Ideas for contributions
+## Contributing
 
-- A visual timeline of lineages over the whole history of a world
-- Disease that spreads between crowded creatures
-- Seasonal migration routes for flyers
-- A shared online leaderboard of champions
+Ideas and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for how the code fits together, then pick an [open issue](https://github.com/riccdev06/biosphere/issues), for example one labelled **good first issue**.
 
 ## License
 
