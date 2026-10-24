@@ -1,7 +1,7 @@
 // Tests for the simulation engine. Run with: npm test (or node --test test/)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { World, KINDS, DAY, trial, baseline, cleanSeed } from '../js/sim.js';
+import { World, KINDS, DAY, trial, baseline, cleanSeed, upgradeBrain, think, N_IN, N_H, N_OUT, RNG } from '../js/sim.js';
 
 const run = (w, n) => { for (let i = 0; i < n; i++) w.tick(); return w; };
 
@@ -95,4 +95,27 @@ test('after four days, evolved brains beat random ones and every species is aliv
   assert.ok(w.iq[0] && w.iq[0].ratio > 2, `herbivores should beat random brains by 2x, got ${w.iq[0] && w.iq[0].ratio}`);
   assert.ok(w.iq[1] && w.iq[1].ratio > 2, `predators should beat random brains by 2x, got ${w.iq[1] && w.iq[1].ratio}`);
   assert.ok(rescues < 15, `too many rescue migrations: ${rescues}`);
+});
+
+test('brains from before calls existed still think the same, and stay silent', () => {
+  const r = new RNG(7), oldIn = 14, oldOut = 3;
+  const w1 = Float32Array.from({ length: N_H * oldIn }, () => r.gauss()), w2 = Float32Array.from({ length: oldOut * (N_H + 1) }, () => r.gauss());
+  const up = upgradeBrain(w1, w2);
+  assert.equal(up.w1.length, N_H * N_IN); assert.equal(up.w2.length, N_OUT * (N_H + 1));
+  const inp = Float32Array.from({ length: N_IN }, (_, i) => i < oldIn ? r.next() * 2 - 1 : 0.7);
+  const hid = new Float32Array(N_H), out = new Float32Array(N_OUT);
+  think(up, inp, hid, out);
+  // the same brain computed by hand with the old shape
+  const h2 = new Float32Array(N_H);
+  for (let h = 0; h < N_H; h++) { let s = 0; for (let i = 0; i < oldIn; i++) s += w1[h * oldIn + i] * inp[i]; h2[h] = Math.tanh(s); }
+  for (let o = 0; o < oldOut; o++) { let s = w2[o * (N_H + 1) + N_H]; for (let h = 0; h < N_H; h++) s += w2[o * (N_H + 1) + h] * h2[h]; assert.ok(Math.abs(Math.tanh(s) - out[o]) < 1e-5); }
+  assert.ok(out[3] < 0.3, 'an upgraded brain should not call');
+  assert.equal(upgradeBrain(new Float32Array(5), new Float32Array(5)), null);
+});
+
+test('creatures can call, and the world reports what calls mean', () => {
+  const w = run(World.create('test-calls', 200), DAY + 10);
+  assert.ok(w.calls.every(c => c && c.rate >= 0 && c.rate <= 1));
+  const back = World.fromJSON(JSON.parse(JSON.stringify(w.toJSON())));
+  assert.deepEqual(back.calls, w.calls);
 });

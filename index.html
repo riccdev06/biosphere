@@ -69,6 +69,7 @@
         </div>
         <button id="sound" type="button" aria-pressed="false">Sound off</button>
         <button id="postcard-btn" type="button">Postcard</button>
+        <button id="tl-btn" type="button">Time-lapse</button>
         <button id="help" type="button" aria-label="Show the guide">?</button>
         <span class="spacer"></span>
         <div class="seg" role="group" aria-label="Tool">
@@ -109,6 +110,7 @@
             <div><dt>Children</dt><dd id="c-kids">0</dd></div>
           </dl>
           <div class="meter" aria-label="Energy"><b id="c-energy"></b></div>
+          <p class="thought" id="thought" aria-live="off"></p>
         </div>
         <div class="sec">
           <h3>Genes</h3>
@@ -122,7 +124,7 @@
         <div class="sec">
           <h3>Brain, live</h3>
           <canvas class="chart" id="brain"></canvas>
-          <p class="note">Light lines excite, coral lines inhibit, thickness is strength. Memory feeds its own output back in on the next step.</p>
+          <p class="note">Light lines excite, coral lines inhibit, thickness is strength. Memory feeds its own output back in on the next step, and Call makes a sound its kin can hear.</p>
           <div class="row"><button id="best" type="button" class="small">Show the most evolved</button><button id="test" type="button" class="small">Test this brain</button><button id="export" type="button" class="small">Export as champion</button></div>
           <p class="note iq-result" id="iq-result" aria-live="polite" hidden></p>
           <div id="champ-out" class="champ" hidden>
@@ -148,6 +150,11 @@
           <p class="note">Every day a dozen creatures of each species run through the same small arenas as creatures with random brains. This is how much more food they find, or prey they catch.</p>
           <div class="iq" id="iq-rows"></div>
           <canvas class="chart" id="iq-chart"></canvas>
+        </div>
+        <div class="sec">
+          <h3>Language</h3>
+          <p class="note">Every creature can make a call that its own kind hears up to 40 pixels away. Calls cost a little energy and start out meaningless. If a species starts calling much more when danger or food is near, a meaning is evolving.</p>
+          <div class="lang" id="lang"></div>
         </div>
         <div class="sec">
           <div class="counts" id="counts"></div>
@@ -201,6 +208,16 @@
       <img id="pc-img" alt="A postcard of your world with its day, season and most evolved species">
       <p class="note" id="pc-note">Press and hold, or right-click, the picture to save it.</p>
       <div class="actions"><button id="pc-share" type="button" class="primary" hidden>Share</button><button id="pc-save" type="button" hidden>Save image</button><button id="pc-again" type="button">New snapshot</button></div>
+    </div>
+  </div>
+
+  <div class="modal" id="timelapse" role="dialog" aria-labelledby="tl-title" hidden>
+    <div class="card wide">
+      <div class="row"><h3 id="tl-title">Your world's story</h3><button id="tl-close" type="button" class="small">Close</button></div>
+      <div class="tl-stage"><canvas id="tl-canvas" width="640" height="400" aria-label="Time-lapse of your world"></canvas><span class="tl-label" id="tl-label"></span></div>
+      <input id="tl-range" type="range" min="0" max="0" value="0" aria-label="Moment in the time-lapse">
+      <p class="note" id="tl-note"></p>
+      <div class="actions"><button id="tl-play" type="button" class="primary">Play</button><button id="tl-save" type="button" hidden>Save as video</button></div>
     </div>
   </div>
 

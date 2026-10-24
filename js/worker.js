@@ -43,7 +43,7 @@ function frame() {
   const n = world.creatures.length, cre = new Float32Array(n * 8);
   for (let i = 0; i < n; i++) {
     const c = world.creatures[i], o = i * 8;
-    cre[o] = c.id; cre[o + 1] = c.k; cre[o + 2] = c.x; cre[o + 3] = c.y; cre[o + 4] = c.a; cre[o + 5] = c.size; cre[o + 6] = c.hue; cre[o + 7] = c.e / world.maxE(c);
+    cre[o] = c.id; cre[o + 1] = c.k; cre[o + 2] = c.x; cre[o + 3] = c.y; cre[o + 4] = c.a; cre[o + 5] = c.size; cre[o + 6] = c.hue; cre[o + 7] = c.e / world.maxE(c) + (c.call ? 10 : 0);   // +10 marks a creature that is calling
   }
   const pl = new Float32Array(world.plants.length * 3);
   world.plants.forEach((p, i) => { pl[i * 3] = p.x; pl[i * 3 + 1] = p.y; pl[i * 3 + 2] = p.e; });
@@ -54,7 +54,7 @@ function frame() {
     id: s.id, k: s.k, name: creatureName(s.id), gen: s.gen, age: s.age, score: s.score, kids: s.kids, e: s.e / world.maxE(s),
     size: s.size, spd: s.spd, sight: s.sight, x: s.x, y: s.y, R: world.sightR(s), lin: s.lin,
     line: world.lineages.get(s.lin) ? { name: world.lineages.get(s.lin).name, count: world.lineages.get(s.lin).count } : null,
-    inp: Array.from(s.inp), hid: Array.from(s.hid), out: Array.from(s.out), w1: Array.from(s.brain.w1), w2: Array.from(s.brain.w2),
+    call: s.call, heard: s.heard, inp: Array.from(s.inp), hid: Array.from(s.hid), out: Array.from(s.out), w1: Array.from(s.brain.w1), w2: Array.from(s.brain.w2),
   } : null;
   const ev = world.event ? { type: world.event.type, name: EVENTS[world.event.type].name, left: world.event.end - world.T, x: world.event.x, y: world.event.y } : null;
   const fx = world.fx; world.fx = [];
@@ -72,7 +72,7 @@ function info(force) {
   const head = world.log[0];
   const msg = {
     type: 'info', seed: world.seed, T: world.T, counts: world.counts(), plants: world.plants.length, history: world.history,
-    lines: world.topLineages(8), records: world.records, stats: world.stats, iq: world.iq, iqHistory: world.iqHistory,
+    lines: world.topLineages(8), records: world.records, stats: world.stats, iq: world.iq, iqHistory: world.iqHistory, calls: world.calls,
     log: head !== lastLog ? world.log : null,
   };
   lastLog = head;

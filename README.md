@@ -12,6 +12,10 @@ Every visitor gets their own world. It is saved in the browser and **keeps evolv
 
 Every creature starts with a random brain. Once a day, Biosphere runs an **intelligence test**: a dozen creatures of each species race creatures with random brains through the same small arenas, and the World tab shows how many times more food they find. In a typical world, herbivores find around 10× more food than random brains after ten days, and predators catch over 10× more prey. You can also test the brain of any single creature.
 
+## Hear them talk
+
+Every creature can make a call that only its own kind hears. Calls cost a little energy and start out meaningless. Biosphere watches who calls and when: if a species starts calling much more when danger is near, an **alarm call** is evolving, and the journal tells you when it happens. Whether a language appears is up to evolution, so every world is a new experiment.
+
 ## Five species
 
 | | Species | Eats | Hunted by |
@@ -29,7 +33,9 @@ Every creature starts with a random brain. Once a day, Biosphere runs an **intel
 - **Climate events.** Droughts dry up the shallow lakes, floods spread the water into the lowlands, blooms cover the land in plants, cold snaps make every step costly, and meteors leave craters that turn into fertile ash.
 - **Territory wars.** Big predators drive smaller ones off their hunting grounds.
 - **Evolving genes.** Size, speed and sight are inherited and mutate. Bigger bodies store more energy and are harder to hunt; speed and sight burn energy every step.
-- **Evolving brains.** Every creature has a recurrent neural network: 14 senses (food, danger, kin, water, energy, memory), 8 hidden neurons and 3 outputs (steer, speed, memory). Offspring inherit their parent's brain with small mutations.
+- **Evolving brains.** Every creature has a recurrent neural network: 16 senses (food, danger, kin, water, energy, memory, calls), 8 hidden neurons and 4 outputs (steer, speed, memory, call). Offspring inherit their parent's brain with small mutations.
+- **Thoughts in words.** Under the brain diagram, Biosphere translates what the selected creature senses and does into a plain sentence: "A hunter is to its left. It turns away and runs. It cries out to its kin."
+- **Time-lapse.** Biosphere photographs your whole world twice a day, also while you're away, and plays it back as a film of seasons, floods and migrations. On the live site you can save it as a video.
 - **Family trees.** Tap a creature to see its ancestors, children and grandchildren, and how many living descendants it has.
 - **Champions.** Export your best creature as a code and send it to a friend. In their world it arrives with five offspring, so worlds can challenge each other.
 - **Ambient sound.** Birdsong by day, crickets at night, rain and wind, all synthesized in the browser. Off by default.
@@ -79,6 +85,7 @@ js/render.js      pixel renderer, camera, weather and effects
 js/charts.js      brain diagram and charts
 js/audio.js       synthesized ambient sound
 js/storage.js     saving your world in localStorage
+js/timelapse.js   time-lapse pictures (IndexedDB) and the film player
 js/main.js        interface, guide, postcard and controls
 test/             tests for the simulation
 ```

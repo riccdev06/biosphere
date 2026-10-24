@@ -4,6 +4,7 @@ import { Renderer, kindCss, lineCss } from './render.js';
 import { drawBrain, drawPopulation, drawTrait, drawIQ } from './charts.js';
 import { writeSave, readSave, storageWorks } from './storage.js';
 import { Ambience } from './audio.js';
+import { TimeLapse, Player } from './timelapse.js';
 
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('en-US');
@@ -16,6 +17,7 @@ let standalone = false; try { standalone = window.top === window && /^(https?|fi
 const renderer = new Renderer($('view'));
 renderer.trails = !reduceMotion; renderer.effects = !reduceMotion;
 const sound = new Ambience();
+const lapse = new TimeLapse();
 
 let frame = null, frameFresh = false, info = { history: [], log: [], counts: [] }, family = null;
 let seed = '', follow = false, running = true, speed = 1, tool = 'inspect', tab = 'creature';
@@ -45,7 +47,7 @@ worker && (worker.onmessage = e => {
       break;
     case 'died': diedNote = m.note; break;
     case 'ready':
-      ready = true; hideLoading(); seed = m.seed; $('seed').value = seed;
+      ready = true; hideLoading(); seed = m.seed; $('seed').value = seed; lapse.setWorld(seed);
       try { history.replaceState(null, '', '#' + seed); } catch (err) {}
       if (m.fresh) requestSave('new');
       if (m.fresh && !toured()) setTimeout(() => showTour(0), 600);
@@ -166,6 +168,7 @@ function renderCreature(withBrain) {
   setGene('size', c.size); setGene('spd', c.spd); setGene('sight', c.sight);
   $('follow').setAttribute('aria-pressed', follow); $('follow').textContent = follow ? 'Following' : 'Follow';
   if (withBrain) drawBrain($('brain'), c);
+  showThought(c);
   if (c.id !== lastSelId) { lastSelId = c.id; $('champ-out').hidden = true; $('iq-result').hidden = true; send({ type: 'family' }); }
 }
 function renderFamily() {
@@ -207,8 +210,24 @@ function renderIQ() {
   }).join('');
   drawIQ($('iq-chart'), info.iqHistory);
 }
+function renderLang() {
+  const calls = info.calls || [];
+  $('lang').innerHTML = KINDS.map((K, k) => {
+    const c = calls[k];
+    if (!c) return `<div class="lang-row"><span style="color:${kindCss(k)}">${K.plural}</span><span class="stat">listening… the first report comes at the end of day 1</span><span></span></div>`;
+    const bits = [`calls ${(c.rate * 100).toFixed(0)}% of the time`];
+    if (c.alarm != null) bits.push(`${c.alarm.toFixed(1)}× near ${k === 1 ? 'rivals' : 'danger'}`);
+    if (c.food != null) bits.push(`${c.food.toFixed(1)}× near ${k === 1 ? 'prey' : 'food'}`);
+    let chip = '<span class="chip">no clear meaning yet</span>';
+    if (c.rate < 0.01) chip = '<span class="chip">mostly silent</span>';
+    else if (c.alarm != null && c.alarm >= 2) chip = `<span class="chip on">${k === 1 ? 'warning call' : 'alarm call'}</span>`;
+    else if (c.food != null && c.food >= 2) chip = `<span class="chip on">food call</span>`;
+    return `<div class="lang-row"><span style="color:${kindCss(k)}">${K.plural}</span><span class="stat">${bits.join(' · ')}</span>${chip}</div>`;
+  }).join('');
+}
 function renderWorldTab() {
   renderIQ();
+  renderLang();
   renderCounts();
   drawPopulation($('pop'), info.history || []);
   drawTrait($('tr-spd'), info.history || [], 'spd');
@@ -261,7 +280,7 @@ function loop(now) {
     }
     if (frameFresh && sound.on && frame.fx.some(e => e.type === 'meteor')) sound.boom();
     renderer.draw(frame);
-    if (frameFresh) { frameFresh = false; send({ type: 'ack' }); }
+    if (frameFresh) { frameFresh = false; send({ type: 'ack' }); if (ready) lapse.maybeCapture(frame, renderer.off, info.counts); }
     drawn++;
     if (now - lastPanel > 100) { lastPanel = now; renderHud(); if (tab === 'creature') renderCreature(drawn % 2 === 0 || !running); }
     if (now - lastSlow > 700) {
@@ -393,6 +412,81 @@ function tap(px, py) {
   send({ type: 'tool', tool: tool === 'release' ? $('species').value : tool, x, y });
 }
 
+// ---------- thoughts in words ----------
+// Reads the live senses and outputs of the selected creature and says what it is doing.
+const FOOD_WORD = ['a plant', 'prey', 'something to eat', 'a carcass', 'ripe berries'];
+function where(side, ahead) {
+  if (Math.abs(side) < 0.38) return ahead >= 0 ? 'straight ahead' : 'right behind it';
+  return side > 0 ? 'to its right' : 'to its left';
+}
+function thoughtFor(c) {
+  const i = c.inp, o = c.out, K = KINDS[c.k];
+  const steer = o[0], speed = (o[1] + 1) / 2, fly = c.k === 4;
+  const move = speed > 0.72 ? (fly ? 'flies hard' : 'runs') : speed > 0.35 ? (fly ? 'glides' : 'walks') : 'creeps';
+  const toward = side => (side > 0.38 && steer > 0.2) || (side < -0.38 && steer < -0.2) || (Math.abs(side) < 0.38 && Math.abs(steer) < 0.35);
+  const away = side => (side > 0.25 && steer < -0.2) || (side < -0.25 && steer > 0.2) || (Math.abs(side) < 0.38 && i[4] > 0 && Math.abs(steer) > 0.5);
+  const parts = [];
+  if (i[5] > 0.12) {
+    const who = c.k === 1 ? 'A bigger rival' : 'A hunter';
+    const w = where(i[3], i[4]);
+    if (away(i[3]) && speed > 0.5) parts.push(`${who} is ${w}. It turns away and ${move}.`);
+    else if (toward(i[3]) && i[4] > 0) parts.push(`${who} is ${w}, and it ${move} toward it. Brave, or not very clever yet.`);
+    else parts.push(speed < 0.35 ? `${who} is ${w}. It freezes.` : `${who} is ${w}. It ${move}.`);
+  } else if (i[2] > 0.03) {
+    const w = where(i[0], i[1]), food = FOOD_WORD[c.k];
+    if (i[2] > 0.85) parts.push(`It has reached ${food} and eats.`);
+    else if (toward(i[0])) parts.push(`It spots ${food} ${w} and ${move} ${c.k === 1 ? 'after it' : 'toward it'}.`);
+    else parts.push(`It sees ${food} ${w}, but ${speed < 0.35 ? 'stays put' : 'goes another way'}.`);
+  } else if (i[11] < -0.5) {
+    parts.push(`Hungry, with nothing in sight. It ${move}, searching.`);
+  } else {
+    parts.push(`Nothing interesting in sight. It ${speed < 0.35 ? 'rests' : move + ', exploring'}.`);
+  }
+  if (c.call) parts.push(i[5] > 0.12 ? 'It cries out to its kin.' : i[2] > 0.03 ? 'It calls to its kin.' : 'It calls out.');
+  else if (i[15] > 0.05) parts.push(`It hears a call ${where(i[14], 1).replace('straight ahead', 'nearby')}${toward(i[14]) && Math.abs(i[14]) > 0.38 ? ' and turns to it' : ''}.`);
+  if (i[9] > 0.5 && !fly) parts.push('Water blocks the way.');
+  return parts.join(' ');
+}
+let lastThought = '', lastThoughtAt = 0, lastThoughtId = 0;
+function showThought(c) {
+  const t = thoughtFor(c), now = performance.now();
+  if (t === lastThought) return;
+  if (c.id === lastThoughtId && now - lastThoughtAt < 900) return;
+  lastThought = t; lastThoughtAt = now; lastThoughtId = c.id;
+  $('thought').textContent = t;
+}
+
+// ---------- time-lapse ----------
+const player = new Player({ canvas: $('tl-canvas'), label: $('tl-label'), range: $('tl-range'), play: $('tl-play') });
+async function openTimelapse() {
+  $('timelapse').hidden = false; $('tl-note').textContent = 'Loading the film…'; $('tl-save').hidden = true;
+  const frames = await lapse.frames();
+  if (frames.length < 2) {
+    $('tl-label').textContent = '';
+    const c = $('tl-canvas').getContext('2d'); c.fillStyle = '#14221d'; c.fillRect(0, 0, 640, 400);
+    $('tl-note').textContent = 'Biosphere takes a picture of your whole world twice a day, also while you’re away. The first pictures appear after about half a world day, and the film grows every time you come back.';
+    $('tl-play').disabled = true; $('tl-range').disabled = true;
+    return;
+  }
+  $('tl-play').disabled = false; $('tl-range').disabled = false;
+  await player.load(frames);
+  const a = frames[0], b = frames[frames.length - 1];
+  $('tl-note').textContent = `${frames.length} pictures, from day ${a.day} to day ${b.day}. Biosphere takes one twice a day, also while you’re away.`;
+  $('tl-save').hidden = !(standalone && location.protocol !== 'file:' && player.canRecord());
+  player.play();
+}
+$('tl-btn').onclick = openTimelapse;
+$('tl-close').onclick = () => { player.pause(); $('timelapse').hidden = true; };
+$('timelapse').addEventListener('click', e => { if (e.target === $('timelapse')) { player.pause(); $('timelapse').hidden = true; } });
+$('tl-save').onclick = async () => {
+  $('tl-save').disabled = true; $('tl-note').textContent = 'Recording the film…';
+  const blob = await player.record();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `biosphere-${seed}-timelapse.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  $('tl-save').disabled = false; $('tl-note').textContent = 'Saved. Share it anywhere.';
+};
+
 // ---------- first-visit guide ----------
 const TOUR = [
   { title: 'This is your world', text: 'Five species live here, and every creature starts with a tiny random brain. Nobody tells them what to do. The ones that find food have children, and their brains are passed on with small changes.', target: '.stage' },
@@ -476,7 +570,7 @@ $('postcard-btn').onclick = openPostcard;
 $('pc-again').onclick = openPostcard;
 $('pc-close').onclick = () => { $('postcard').hidden = true; };
 $('postcard').addEventListener('click', e => { if (e.target === $('postcard')) $('postcard').hidden = true; });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('postcard').hidden = true; if (tourAt >= 0) showTour(-1); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('postcard').hidden = true; player.pause(); $('timelapse').hidden = true; if (tourAt >= 0) showTour(-1); } });
 $('pc-save').onclick = () => { const a = document.createElement('a'); a.href = $('pc-img').src; a.download = `biosphere-${seed}-day-${frame ? frame.day : 1}.png`; document.body.appendChild(a); a.click(); a.remove(); };
 
 // ---------- start ----------

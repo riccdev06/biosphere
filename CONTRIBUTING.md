@@ -30,9 +30,10 @@ The tests use Node's built-in test runner (Node 18 or newer) and need no install
 | `js/render.js` | Draws snapshots as pixels: terrain, creatures, weather, effects and the camera. |
 | `js/charts.js` | The brain diagram and the small charts. |
 | `js/audio.js` | Synthesized ambient sound. |
-| `js/main.js` | Everything you click: tabs, tools, the guide, the postcard, champions. |
+| `js/timelapse.js` | Twice-daily pictures of the world in IndexedDB, and the film player. |
+| `js/main.js` | Everything you click: tabs, tools, the guide, the postcard, thoughts in words, champions. |
 
-A creature's brain is a tiny recurrent network: 14 senses, 8 hidden neurons and 3 outputs (steer, speed, memory). Children copy their parent's brain with small random changes. Nothing is trained with gradients; everything comes from who survives long enough to have children.
+A creature's brain is a tiny recurrent network: 16 senses, 8 hidden neurons and 4 outputs (steer, speed, memory, call). Brains saved before calls existed are upgraded by `upgradeBrain()` in `js/sim.js`, which wires the new parts at zero so old creatures behave exactly as before. Children copy their parent's brain with small random changes. Nothing is trained with gradients; everything comes from who survives long enough to have children.
 
 ## Changing the balance
 

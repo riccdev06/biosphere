@@ -189,7 +189,7 @@ export class Renderer {
       else { put(x, y, leaf); if (e > 1) put(x + 1, y, berry); }
     }
     // creatures stay bright at night, so the world glows with life
-    const cm = 1 - dk * 0.12, eye = pack(255, 246, 222), shadow = pack(10, 18, 16);
+    const cm = 1 - dk * 0.12, eye = pack(255, 246, 222), shadow = pack(10, 18, 16), callCol = pack(255, 250, 230);
     for (let i = 0; i < n; i++) {
       const o = i * 8, k = cre[o + 1], cx = cre[o + 2], cy = cre[o + 3], a = cre[o + 4], size = cre[o + 5];
       const rgb = creatureCol(k, cre[o + 6]), col = pack(rgb[0] * cm | 0, rgb[1] * cm | 0, rgb[2] * cm | 0);
@@ -197,10 +197,12 @@ export class Renderer {
       if (k === 4) {
         put(x + 1, y + 2, shadow);
         for (const [dx, dy] of (((cre[o] | 0) + (this.frame >> 3)) & 1) ? WINGS_UP : WINGS_DOWN) put(x + dx, y + dy, col);
+        if (cre[o + 7] >= 10 && ((this.frame >> 2) + (cre[o] | 0)) % 3 === 0) put(x, y - 3, callCol);
         continue;
       }
       const big = size >= 1.2;
       for (const [dx, dy] of SPR[k][big ? 1 : 0]) put(x + dx, y + dy, col);
+      if (cre[o + 7] >= 10 && ((this.frame >> 2) + (cre[o] | 0)) % 3 === 0) { put(x, y - 3 - (big ? 1 : 0), callCol); put(x - 1, y - 4 - (big ? 1 : 0), callCol); put(x + 1, y - 4 - (big ? 1 : 0), callCol); }
       const rad = big ? 2.6 : 1.8;
       put(Math.round(cx + Math.cos(a) * rad), Math.round(cy + Math.sin(a) * rad), eye);
     }

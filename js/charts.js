@@ -20,7 +20,7 @@ export function drawBrain(cv, c) {
   if (!c) return;
   const labels = labelsFor(c.k);
   const xi = Math.min(110, w * 0.36), xh = xi + (w - xi - 70) * 0.55, xo = w - 62;
-  const yi = i => 10 + i * (h - 20) / (N_IN - 1), yh = i => 34 + i * (h - 68) / (N_H - 1), yo = i => h / 2 - 70 + i * 70;
+  const yi = i => 10 + i * (h - 20) / (N_IN - 1), yh = i => 34 + i * (h - 68) / (N_H - 1), yo = i => h / 2 - 96 + i * 64;
   const { w1, w2 } = c;
   const line = (ax, ay, bx, by, v, act) => {
     const a = Math.min(0.85, 0.08 + Math.abs(v) * 0.2 + Math.abs(act) * 0.25);

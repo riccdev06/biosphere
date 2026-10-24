@@ -9,8 +9,11 @@ const GROWTH = [1.35, 1.0, 0.75, 0.5];
 const MAX_PLANTS = 3400;
 export const CARRION_T = 2600;     // ticks before carrion rots away
 
-export const N_IN = 14, N_H = 8, N_OUT = 3;
-export const OUT_LABELS = ['Steer', 'Speed', 'Memory'];
+export const N_IN = 16, N_H = 8, N_OUT = 4;
+export const OUT_LABELS = ['Steer', 'Speed', 'Memory', 'Call'];
+const OLD_IN = 14, OLD_OUT = 3;      // brain shape before creatures could call
+export const CALL_R = 40;            // how far a call carries
+const HEAR = new Float32Array(3);
 
 // Who eats what. prey: kinds this one can hunt; ratio: how big a prey it can take down.
 export const KINDS = [
@@ -36,7 +39,7 @@ const DANGER = KINDS.map((_, k) => KINDS.map((K, j) => K.prey.includes(k) ? j : 
 export function labelsFor(k) {
   const K = KINDS[k];
   return [`${K.food} side`, `${K.food} ahead`, `${K.food} near`, `${K.danger} side`, `${K.danger} ahead`, `${K.danger} near`,
-    'Kin side', 'Kin ahead', 'Kin near', 'Water ahead', 'Water side', 'Energy', 'Memory', 'Constant'];
+    'Kin side', 'Kin ahead', 'Kin near', 'Water ahead', 'Water side', 'Energy', 'Memory', 'Constant', 'Call side', 'Call near'];
 }
 
 // Terrain types
@@ -106,6 +109,17 @@ function makeBrain(rng) {
   for (let i = 0; i < w1.length; i++) w1[i] = rng.gauss() * 0.8;
   for (let i = 0; i < w2.length; i++) w2[i] = rng.gauss() * 0.8;
   return { w1, w2 };
+}
+// Brains from before calls existed get the new senses and the call output wired at zero,
+// so they behave exactly as they did and never call until a mutation says otherwise.
+export function upgradeBrain(w1, w2) {
+  if (w1.length === N_H * N_IN && w2.length === N_OUT * (N_H + 1)) return { w1, w2 };
+  if (w1.length !== N_H * OLD_IN || w2.length !== OLD_OUT * (N_H + 1)) return null;
+  const n1 = new Float32Array(N_H * N_IN), n2 = new Float32Array(N_OUT * (N_H + 1));
+  for (let h = 0; h < N_H; h++) for (let i = 0; i < OLD_IN; i++) n1[h * N_IN + i] = w1[h * OLD_IN + i];
+  n2.set(w2);
+  n2[OLD_OUT * (N_H + 1) + N_H] = -1;   // bias the new call output toward silence
+  return { w1: n1, w2: n2 };
 }
 function mutateArr(rng, src, rate = 1) {
   const w = Float32Array.from(src);
@@ -206,6 +220,9 @@ export class World {
     this.meteors = [];
     this.fx = []; this.fxOn = false; this.fightsToday = 0;
     this.iq = new Array(NK).fill(null); this.iqHistory = []; this.iqMark = new Array(NK).fill(0);
+    // per species: [calls near danger, ticks near danger, calls near food, ticks near food, calls otherwise, ticks otherwise]
+    this.lang = Array.from({ length: NK }, () => new Array(6).fill(0));
+    this.calls = new Array(NK).fill(null); this.callMark = Array.from({ length: NK }, () => ({}));
     this.grids = Array.from({ length: NK + 3 }, () => Array.from({ length: GX * GY }, () => []));
   }
 
@@ -302,7 +319,7 @@ export class World {
       hue, size: o.size ?? 1, spd: o.spd ?? 1, sight: o.sight ?? 1,
       lin: o.lin ?? 0, parent: o.parent ?? 0, score: 0, kids: 0, mem: 0, born: this.T,
       brain: o.brain || makeBrain(r),
-      inp: new Float32Array(N_IN), hid: new Float32Array(N_H), out: new Float32Array(N_OUT), dead: false,
+      inp: new Float32Array(N_IN), hid: new Float32Array(N_H), out: new Float32Array(N_OUT), dead: false, eaten: false, call: 0, heard: 0,
     };
     if (!c.lin) c.lin = this.newLineage(k, hue, o.linName);
     this.anc.set(c.id, { id: c.id, p: c.parent, k, g: c.gen, b: this.T, d: -1, kids: 0, lin: c.lin, hue, s: 0 });
@@ -352,6 +369,25 @@ export class World {
       }
     }
     return b ? { o: b, dx: bx, dy: by, d: Math.sqrt(bd) } : best;
+  }
+  nearestCaller(grid, x, y, R, self) {
+    const x0 = Math.floor((x - R) / CS), x1 = Math.floor((x + R) / CS), y0 = Math.floor((y - R) / CS), y1 = Math.floor((y + R) / CS);
+    let bd = R * R, b = null, bx = 0, by = 0;
+    for (let j = y0; j <= y1; j++) {
+      const row = ((j % GY) + GY) % GY * GX;
+      for (let i = x0; i <= x1; i++) {
+        const cell = grid[row + ((i % GX) + GX) % GX];
+        for (let n = 0; n < cell.length; n++) {
+          const o = cell[n];
+          if (!o.call || o.dead || o === self) continue;
+          let dx = o.x - x; if (dx > HW) dx -= W; else if (dx < -HW) dx += W;
+          let dy = o.y - y; if (dy > HH) dy -= H; else if (dy < -HH) dy += H;
+          const d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; b = o; bx = dx; by = dy; }
+        }
+      }
+    }
+    return b ? { o: b, dx: bx, dy: by, d: Math.sqrt(bd) } : null;
   }
   sense(c, off, hit, R) { senseInto(c.inp, off, c.a, hit, R); }
   waterAt(c, ang, dist) { return this.isWater(c.x + Math.cos(c.a + ang) * dist, c.y + Math.sin(c.a + ang) * dist) ? 1 : 0; }
@@ -407,12 +443,19 @@ export class World {
       const slow = ((T + c.id) & 1) === 0 || c.k === 1;   // kin and water senses refresh every other step
       const kin = slow ? this.nearest(G[c.k], c.x, c.y, R * 0.6, c) : null;
       this.sense(c, 0, food, R); this.sense(c, 3, danger, R); if (slow) this.sense(c, 6, kin, R * 0.6);
+      if (slow) { const heard = this.nearestCaller(G[c.k], c.x, c.y, CALL_R, c); senseInto(HEAR, 0, c.a, heard, CALL_R); c.inp[14] = HEAR[0]; c.inp[15] = HEAR[2]; c.heard = heard ? 1 : 0; }
       if (K.flies) { c.inp[9] = 0; c.inp[10] = 0; }
       else if (((T + c.id) % 3) === 0) { c.inp[9] = this.waterAt(c, 0, 3) || this.waterAt(c, 0, 6) * 0.5; c.inp[10] = this.waterAt(c, 0.7, 5) - this.waterAt(c, -0.7, 5); }
       c.inp[11] = c.e / this.maxE(c) * 2 - 1; c.inp[12] = c.mem; c.inp[13] = 1;
       // think
       think(c.brain, c.inp, c.hid, c.out);
       c.mem = c.out[2];
+      c.call = c.out[3] > 0.3 ? 1 : 0;
+      if (c.call) c.e -= 0.0006;
+      if ((T & 3) === 0) {  // who calls, and when: the raw material for the language statistics
+        const L = this.lang[c.k], dn = c.inp[5] > 0.25, fn = c.inp[2] > 0.5;
+        const b = dn ? 0 : fn ? 2 : 4; L[b] += c.call; L[b + 1]++;
+      }
       // move
       c.a += c.out[0] * 0.3;
       const sp = (c.out[1] + 1) * 0.5 * this.maxSp(c);
@@ -479,7 +522,7 @@ export class World {
     if (T % 100 === 0) this.sample();
     if (T % 1200 === 0) this.pruneFamily();
     { const slot = T % DAY; if (slot % 400 === 0 && slot / 400 < NK) this.measureIQ(slot / 400); }
-    if (T % DAY === 0) this.recordIQ();
+    if (T % DAY === 0) { this.recordIQ(); this.summarizeCalls(); }
     if (T % DAY === 0) {
       if (this.fightsToday > 400) this.addLog(`Territory wars: predators clashed ${this.fightsToday.toLocaleString('en-US')} times today. The biggest ones hold the best hunting grounds.`);
       this.fightsToday = 0;
@@ -651,6 +694,31 @@ export class World {
     this.iqHistory.push({ t: this.T, r: this.iq.map(q => q ? q.ratio : null) });
     if (this.iqHistory.length > 240) this.iqHistory.shift();
   }
+  // Do creatures call more when danger or food is near than when nothing is going on?
+  summarizeCalls() {
+    for (let k = 0; k < NK; k++) {
+      const [cd, td, cf, tf, cn, tn] = this.lang[k];
+      const base = (cn + 0.5) / (tn + 5);
+      const rate = (cd + cf + cn) / Math.max(1, td + tf + tn);
+      const alarm = td >= 150 ? ((cd + 0.5) / (td + 5)) / base : null;
+      const food = tf >= 150 ? ((cf + 0.5) / (tf + 5)) / base : null;
+      this.calls[k] = { t: this.T, rate: +rate.toFixed(3), alarm: alarm == null ? null : +alarm.toFixed(2), food: food == null ? null : +food.toFixed(2) };
+      const K = KINDS[k], M = this.callMark[k], who = K.plural;
+      M.alarmDays = alarm != null && alarm >= 2.5 && rate > 0.02 ? (M.alarmDays || 0) + 1 : 0;
+      M.foodDays = food != null && food >= 2.5 && rate > 0.02 ? (M.foodDays || 0) + 1 : 0;
+      if (M.alarmDays >= 2 && !M.alarm) {
+        M.alarm = true;
+        this.addLog(k === 1
+          ? `${who} have started calling ${alarm.toFixed(1)}× more often when a bigger rival is near. A warning call is evolving.`
+          : `${who} now call ${alarm.toFixed(1)}× more often when danger is near. An alarm call is evolving!`, 'lang');
+      }
+      if (M.foodDays >= 2 && !M.food) {
+        M.food = true;
+        this.addLog(`${who} now call ${food.toFixed(1)}× more often when ${k === 1 ? 'prey' : 'food'} is near. They are telling their kin where to ${k === 1 ? 'hunt' : 'eat'}.`, 'lang');
+      }
+      this.lang[k].fill(0);
+    }
+  }
   testBrain(id) {
     const c = this.creatures.find(x => x.id === id); if (!c) return null;
     let sum = 0; for (const a of TRIAL_ARENAS) sum += trial(c.brain, c.k, a);
@@ -710,9 +778,9 @@ export class World {
     let d;
     try { d = JSON.parse(atob(s.slice(5))); } catch (e) { throw new Error('This champion code is damaged. Copy it again in full.'); }
     if (d.v !== 1 || !(d.k >= 0 && d.k < NK)) throw new Error('This champion code is from a different version of Biosphere.');
-    const w1 = b2f(d.w1), w2 = b2f(d.w2);
-    if (w1.length !== N_H * N_IN || w2.length !== N_OUT * (N_H + 1)) throw new Error('This champion has a brain shape this world cannot use.');
-    return { ...d, brain: { w1, w2 } };
+    const brain = upgradeBrain(b2f(d.w1), b2f(d.w2));
+    if (!brain) throw new Error('This champion has a brain shape this world cannot use.');
+    return { ...d, brain };
   }
   importChampion(str) {
     const d = World.parseChampion(str);
@@ -736,7 +804,7 @@ export class World {
   toJSON() {
     const r3 = v => Math.round(v * 1000) / 1000;
     return {
-      v: 3, seed: this.seed, rng: this.rng.s, T: this.T, nextId: this.nextId,
+      v: 4, seed: this.seed, rng: this.rng.s, T: this.T, nextId: this.nextId,
       creatures: this.creatures.map(c => [c.id, c.k, r3(c.x), r3(c.y), r3(c.a), r3(c.e), c.age, c.gen, r3(c.hue), r3(c.size), r3(c.spd), r3(c.sight), c.lin, c.parent, c.score, c.kids, r3(c.mem), c.born, f2b(c.brain.w1), f2b(c.brain.w2)]),
       plants: this.plants.map(p => [r3(p.x), r3(p.y), r3(p.e)]),
       corpses: this.corpses.map(d => [r3(d.x), r3(d.y), r3(d.e), d.t, d.k]),
@@ -744,19 +812,19 @@ export class World {
       anc: [...this.anc.values()].map(a => [a.id, a.p, a.k, a.g, a.b, a.d, a.kids, a.lin, Math.round(a.hue), a.s]),
       history: this.history, log: this.log, stats: this.stats, records: this.records,
       lastRescue: this.lastRescue, genMark: this.genMark,
-      iq: this.iq, iqHistory: this.iqHistory, iqMark: this.iqMark,
+      iq: this.iq, iqHistory: this.iqHistory, iqMark: this.iqMark, calls: this.calls, callMark: this.callMark,
       event: this.event, nextEventAt: this.nextEventAt, waterLevel: this.waterLevel, waterTarget: this.waterTarget, meteors: this.meteors,
       bonus: (() => { const o = []; const b = this.bonus; for (let i = 0; i < b.length; i++) if (b[i] > 0.01) o.push(i, Math.round(b[i] * 100)); return o; })(),
     };
   }
   static fromJSON(d) {
-    if (!d || d.v !== 3) throw new Error('Unsupported save');
+    if (!d || (d.v !== 3 && d.v !== 4)) throw new Error('Unsupported save');
     const w = new World(d.seed);
     w.rng = new RNG(d.rng); w.T = d.T; w.nextId = d.nextId;
     w.creatures = d.creatures.map(a => ({
       id: a[0], k: a[1], x: a[2], y: a[3], a: a[4], e: a[5], age: a[6], gen: a[7], hue: a[8], size: a[9], spd: a[10], sight: a[11],
-      lin: a[12], parent: a[13], score: a[14], kids: a[15], mem: a[16], born: a[17], brain: { w1: b2f(a[18]), w2: b2f(a[19]) },
-      inp: new Float32Array(N_IN), hid: new Float32Array(N_H), out: new Float32Array(N_OUT), dead: false,
+      lin: a[12], parent: a[13], score: a[14], kids: a[15], mem: a[16], born: a[17], brain: upgradeBrain(b2f(a[18]), b2f(a[19])),
+      inp: new Float32Array(N_IN), hid: new Float32Array(N_H), out: new Float32Array(N_OUT), dead: false, eaten: false, call: 0, heard: 0,
     }));
     w.plants = d.plants.map(a => ({ x: a[0], y: a[1], e: a[2], dead: false }));
     w.corpses = d.corpses.map(a => ({ x: a[0], y: a[1], e: a[2], t: a[3], k: a[4], dead: false }));
@@ -765,6 +833,7 @@ export class World {
     w.history = d.history; w.log = d.log; w.stats = d.stats; w.records = d.records;
     w.lastRescue = d.lastRescue; w.genMark = d.genMark;
     if (d.iq) { w.iq = d.iq; w.iqHistory = d.iqHistory || []; w.iqMark = d.iqMark || w.iqMark; }
+    if (d.calls) { w.calls = d.calls; w.callMark = d.callMark || w.callMark; }
     w.event = d.event; w.nextEventAt = d.nextEventAt; w.waterLevel = d.waterLevel; w.waterTarget = d.waterTarget; w.meteors = d.meteors || [];
     if (w.waterLevel) w.classify(w.waterLevel);
     if (Array.isArray(d.bonus)) for (let i = 0; i < d.bonus.length; i += 2) w.bonus[d.bonus[i]] = d.bonus[i + 1] / 100;
