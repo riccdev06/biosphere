@@ -2,6 +2,12 @@
   "name": "biosphere",
   "version": "1.0.0",
   "description": "A pixel-art ecosystem where creatures with tiny neural-network brains evolve in your browser.",
+  "author": "Riccardo Vantaggio (https://github.com/riccdev06)",
+  "homepage": "https://riccdev06.github.io/biosphere/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/riccdev06/biosphere.git"
+  },
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,5 +15,7 @@
     "test": "node --test"
   },
   "license": "MIT",
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }
